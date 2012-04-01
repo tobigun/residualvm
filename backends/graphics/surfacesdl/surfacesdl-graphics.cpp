@@ -194,7 +194,12 @@ Graphics::PixelBuffer SurfaceSdlGraphicsManager::setupScreen(int screenW, int sc
 #endif
 	{
 		bpp = 16;
+#if defined(__ANDROID__)
+		// HWSURFACE shall not be used with pelya's SDL 1.2 port
+		sdlflags = SDL_SWSURFACE;
+#else
 		sdlflags = SDL_HWSURFACE;
+#endif
 	}
 
 	if (_fullscreen)

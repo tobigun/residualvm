@@ -28,6 +28,10 @@
 #undef ARRAYSIZE // winnt.h defines ARRAYSIZE, but we want our own one...
 #endif
 
+#if defined(__ANDROID__)
+#include <android/log.h>
+#endif
+
 #include "backends/platform/sdl/sdl.h"
 #include "common/config-manager.h"
 #include "common/EventRecorder.h"
@@ -263,6 +267,26 @@ void OSystem_SDL::logMessage(LogMessageType::Type type, const char *message) {
 	// First log to stdout/stderr
 	FILE *output = 0;
 
+#if defined(__ANDROID__)
+	android_LogPriority prio;
+	switch (type) {
+	case LogMessageType::kDebug:
+		prio = ANDROID_LOG_DEBUG;
+		break;
+	case LogMessageType::kInfo:
+		prio = ANDROID_LOG_INFO;
+		break;
+	case LogMessageType::kWarning:
+		prio = ANDROID_LOG_WARN;
+		break;
+	case LogMessageType::kError:
+		prio = ANDROID_LOG_ERROR;
+		break;
+	default:
+		prio = ANDROID_LOG_INFO;
+	}
+	__android_log_print(prio, "ResidualVM", message);
+#else
 	if (type == LogMessageType::kInfo || type == LogMessageType::kDebug)
 		output = stdout;
 	else
@@ -270,6 +294,7 @@ void OSystem_SDL::logMessage(LogMessageType::Type type, const char *message) {
 
 	fputs(message, output);
 	fflush(output);
+#endif
 
 	// Then log into file (via the logger)
 	if (_logger)

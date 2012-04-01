@@ -716,7 +716,7 @@ Usage: $0 [OPTIONS]...
 
 Configuration:
   -h, --help              display this help and exit
-  --backend=BACKEND       backend to build (sdl, null) [sdl]
+  --backend=BACKEND       backend to build (sdl, androidsdl, null) [sdl]
 
 Installation directories:
   --prefix=PREFIX         install architecture-independent files in PREFIX
@@ -742,6 +742,7 @@ Fine tuning of the installation directories:
 
 Special configuration feature:
   --host=HOST             cross-compile to target HOST (arm-linux, ...)
+                          special targets: androidsdl for Android with SDL backend
 
 Game engines:
   --enable-all-engines     enable all engines, including those which are
@@ -1095,6 +1096,11 @@ NATIVEEXEEXT=$_exeext
 case $_host in
 android | android-v7a)
 	_host_os=android
+	_host_cpu=arm
+	_host_alias=arm-linux-androideabi
+	;;
+androidsdl)
+	_host_os=androidsdl
 	_host_cpu=arm
 	_host_alias=arm-linux-androideabi
 	;;
@@ -1573,7 +1579,7 @@ if test "$have_gcc" = yes ; then
 		case $_host_os in
 		# newlib-based system include files suppress non-C89 function
 		# declarations under __STRICT_ANSI__
-		amigaos* | android | bada | dreamcast | ds | gamecube | mingw* | n64 | psp | ps2 | ps3 | wii | wince )
+		amigaos* | android | androidsdl | bada | dreamcast | ds | gamecube | mingw* | n64 | psp | ps2 | ps3 | wii | wince )
 			;;
 		*)
 			CXXFLAGS="$CXXFLAGS -ansi"
@@ -1881,6 +1887,11 @@ case $_host_os in
 		add_line_to_config_mk "ANDROID_SDK = $ANDROID_SDK"
 		_seq_midi=no
 		;;
+	androidsdl)
+		CXXFLAGS="$CXXFLAGS -Os"
+		_unix=yes
+		_seq_midi=no
+		;;
 	bada)
 		BADA_SDK_ROOT="`cygpath -m ${BADA_SDK}`"
 		add_line_to_config_mk "BADA_SDK = $BADA_SDK"
@@ -2139,6 +2150,13 @@ if test -n "$_host"; then
 			_seq_midi=no
 			_mt32emu=no
 			_timidity=no
+			;;
+		androidsdl)
+			DEFINES="$DEFINES -DANDROID"
+			_unix=yes
+			_need_memalign=yes
+			_seq_midi=no
+			_vkeybd=yes
 			;;
 		arm-linux|arm*-linux-gnueabi|arm-*-linux)
 			;;
@@ -2521,6 +2539,9 @@ case $_backend in
 		LDFLAGS="$LDFLAGS -Wl,-z,noexecstack"
 		INCLUDES="$INCLUDES -I$ANDROID_NDK/sources/cxx-stl/system/include"
 		;;
+	androidsdl)
+		DEFINES="$DEFINES -DREDUCE_MEMORY_USAGE"
+		;;
 	bada)
 		# dirent.h not available. NONSTANDARD_PORT==ensure portdefs.h is included
 		DEFINES="$DEFINES -DBADA -DDISABLE_STDIO_FILESTREAM -DNONSTANDARD_PORT"
@@ -2691,7 +2712,7 @@ esac
 # Enable 16bit support only for backends which support it
 #
 case $_backend in
-	android | bada | dingux | dreamcast | gph | iphone | maemo | openpandora | psp | samsungtv | sdl | webos | wii)
+	android | androidsdl | bada | dingux | dreamcast | gph | iphone | maemo | openpandora | psp | samsungtv | sdl | webos | wii)
 		if test "$_16bit" = auto ; then
 			_16bit=yes
 		else
@@ -2737,7 +2758,7 @@ case $_host_os in
 	amigaos* | cygwin* | dreamcast | ds | gamecube | mingw* | n64 | ps2 | ps3 | psp | wii | wince)
 		_posix=no
 		;;
-	android | beos* | bsd* | darwin* | freebsd* | gph-linux | haiku* | hpux* | iphone | irix* | linux* | maemo | mint* | netbsd* | openbsd* | solaris* | sunos* | uclinux* | webos)
+	android | androidsdl | beos* | bsd* | darwin* | freebsd* | gph-linux | haiku* | hpux* | iphone | irix* | linux* | maemo | mint* | netbsd* | openbsd* | solaris* | sunos* | uclinux* | webos)
 		_posix=yes
 		;;
 	os2-emx*)

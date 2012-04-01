@@ -64,7 +64,11 @@ SdlEventSource::SdlEventSource()
 	// Reset mouse state
 	memset(&_km, 0, sizeof(_km));
 
+#if defined(__ANDROID__)
+	int joystick_num = 0;
+#else
 	int joystick_num = ConfMan.getInt("joystick_num");
+#endif
 	if (joystick_num > -1) {
 		// Initialize SDL joystick subsystem
 		if (SDL_InitSubSystem(SDL_INIT_JOYSTICK) == -1) {
@@ -572,7 +576,13 @@ bool SdlEventSource::handleMouseButtonUp(SDL_Event &ev, Common::Event &event) {
 	return true;
 }
 
+static const SDLKey grim_keymap[] = {
+	SDLK_i, SDLK_LSHIFT, SDLK_ESCAPE, SDLK_u, 
+	SDLK_RETURN, SDLK_a, SDLK_PERIOD, SDLK_LSHIFT, SDLK_F1
+};
+
 bool SdlEventSource::handleJoyButtonDown(SDL_Event &ev, Common::Event &event) {
+#if 0
 	if (ev.jbutton.button == JOY_BUT_LMOUSE) {
 		event.type = Common::EVENT_LBUTTONDOWN;
 		processMouseEvent(event, _km.x, _km.y);
@@ -600,10 +610,18 @@ bool SdlEventSource::handleJoyButtonDown(SDL_Event &ev, Common::Event &event) {
 			break;
 		}
 	}
+#else
+	event.type = Common::EVENT_KEYDOWN;
+	if (ev.jbutton.button < sizeof(grim_keymap) / sizeof(SDLKey)) {
+		event.kbd.keycode = SDLToOSystemKeycode(grim_keymap[ev.jbutton.button]);
+		event.kbd.ascii = mapKey(grim_keymap[ev.jbutton.button], (SDLMod)ev.key.keysym.mod, 0);
+	}
+#endif
 	return true;
 }
 
 bool SdlEventSource::handleJoyButtonUp(SDL_Event &ev, Common::Event &event) {
+#if 0
 	if (ev.jbutton.button == JOY_BUT_LMOUSE) {
 		event.type = Common::EVENT_LBUTTONUP;
 		processMouseEvent(event, _km.x, _km.y);
@@ -631,6 +649,14 @@ bool SdlEventSource::handleJoyButtonUp(SDL_Event &ev, Common::Event &event) {
 			break;
 		}
 	}
+
+#else
+	event.type = Common::EVENT_KEYUP;
+	if (ev.jbutton.button < sizeof(grim_keymap) / sizeof(SDLKey)) {
+		event.kbd.keycode = SDLToOSystemKeycode(grim_keymap[ev.jbutton.button]);
+		event.kbd.ascii = mapKey(grim_keymap[ev.jbutton.button], (SDLMod)ev.key.keysym.mod, 0);
+	}
+#endif
 	return true;
 }
 
@@ -638,46 +664,55 @@ bool SdlEventSource::handleJoyAxisMotion(SDL_Event &ev, Common::Event &event) {
 	int axis = ev.jaxis.value;
 	if ( axis > JOY_DEADZONE) {
 		axis -= JOY_DEADZONE;
-		event.type = Common::EVENT_MOUSEMOVE;
 	} else if ( axis < -JOY_DEADZONE ) {
 		axis += JOY_DEADZONE;
-		event.type = Common::EVENT_MOUSEMOVE;
-	} else
+	} else {
 		axis = 0;
+	}
 
 	if ( ev.jaxis.axis == JOY_XAXIS) {
-#ifdef JOY_ANALOG
-		_km.x_vel = axis / 2000;
-		_km.x_down_count = 0;
-#else
 		if (axis != 0) {
-			_km.x_vel = (axis > 0) ? 1:-1;
-			_km.x_down_count = 1;
+			event.type = Common::EVENT_KEYDOWN;
+			if (axis > 0) {
+				event.kbd.keycode = Common::KEYCODE_RIGHT;
+				event.kbd.ascii = mapKey(SDLK_RIGHT, (SDLMod)ev.key.keysym.mod, 0);
+			} else {
+				event.kbd.keycode = Common::KEYCODE_LEFT;
+				event.kbd.ascii = mapKey(SDLK_LEFT, (SDLMod)ev.key.keysym.mod, 0);
+			}
 		} else {
-			_km.x_vel = 0;
-			_km.x_down_count = 0;
-		}
-#endif
+			event.type = Common::EVENT_KEYUP;
 
+			event.kbd.keycode = Common::KEYCODE_RIGHT;
+			event.kbd.ascii = mapKey(SDLK_RIGHT, (SDLMod)ev.key.keysym.mod, 0);
+			g_system->getEventManager()->pushEvent(event);
+
+			event.kbd.keycode = Common::KEYCODE_LEFT;
+			event.kbd.ascii = mapKey(SDLK_LEFT, (SDLMod)ev.key.keysym.mod, 0);
+		}
 	} else if (ev.jaxis.axis == JOY_YAXIS) {
 #ifndef JOY_INVERT_Y
 		axis = -axis;
 #endif
-#ifdef JOY_ANALOG
-		_km.y_vel = -axis / 2000;
-		_km.y_down_count = 0;
-#else
 		if (axis != 0) {
-			_km.y_vel = (-axis > 0) ? 1: -1;
-			_km.y_down_count = 1;
+			event.type = Common::EVENT_KEYDOWN;
+			if (axis > 0) {
+				event.kbd.keycode = Common::KEYCODE_UP;
+				event.kbd.ascii = mapKey(SDLK_UP, (SDLMod)ev.key.keysym.mod, 0);
+			} else {
+				event.kbd.keycode = Common::KEYCODE_DOWN;
+				event.kbd.ascii = mapKey(SDLK_DOWN, (SDLMod)ev.key.keysym.mod, 0);
+			}
 		} else {
-			_km.y_vel = 0;
-			_km.y_down_count = 0;
-		}
-#endif
-	}
+			event.type = Common::EVENT_KEYUP;
+			event.kbd.keycode = Common::KEYCODE_UP;
+			event.kbd.ascii = mapKey(SDLK_UP, (SDLMod)ev.key.keysym.mod, 0);
+			g_system->getEventManager()->pushEvent(event);
 
-	processMouseEvent(event, _km.x, _km.y);
+			event.kbd.keycode = Common::KEYCODE_DOWN;
+			event.kbd.ascii = mapKey(SDLK_DOWN, (SDLMod)ev.key.keysym.mod, 0);
+		}
+	}
 
 	return true;
 }
