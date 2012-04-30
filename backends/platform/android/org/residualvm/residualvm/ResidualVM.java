@@ -33,6 +33,8 @@ public abstract class ResidualVM implements SurfaceHolder.Callback, Runnable {
 	private int _sample_rate = 0;
 	private int _buffer_size = 0;
 
+	private static final boolean USE_OPENGL = true;
+	
 	private String[] _args;
 
 	final private native void create(AssetManager asset_manager,
@@ -319,6 +321,8 @@ public abstract class ResidualVM implements SurfaceHolder.Callback, Runnable {
 
 			if (value == size || (size > 0 && value > size))
 				score += 10;
+			else
+				score -= 10000;
 
 			// penalize for wasted bits
 			score -= value - size;
@@ -335,14 +339,23 @@ public abstract class ResidualVM implements SurfaceHolder.Callback, Runnable {
 			// less MSAA is better
 			score -= get(EGL10.EGL_SAMPLES) * 100;
 
-			// Must be at least 565, but then smaller is better
-			score += weightBits(EGL10.EGL_RED_SIZE, 5);
-			score += weightBits(EGL10.EGL_GREEN_SIZE, 6);
-			score += weightBits(EGL10.EGL_BLUE_SIZE, 5);
-			score += weightBits(EGL10.EGL_ALPHA_SIZE, 0);
-			score += weightBits(EGL10.EGL_DEPTH_SIZE, 0);
-			score += weightBits(EGL10.EGL_STENCIL_SIZE, 0);
-
+			if (USE_OPENGL) {
+				score += weightBits(EGL10.EGL_RED_SIZE, 8);
+				score += weightBits(EGL10.EGL_GREEN_SIZE, 8);
+				score += weightBits(EGL10.EGL_BLUE_SIZE, 8);
+				score += weightBits(EGL10.EGL_ALPHA_SIZE, 8);
+				score += weightBits(EGL10.EGL_DEPTH_SIZE, 24);
+				score += weightBits(EGL10.EGL_STENCIL_SIZE, 8);
+			} else {
+				// Must be at least 565, but then smaller is better
+				score += weightBits(EGL10.EGL_RED_SIZE, 5);
+				score += weightBits(EGL10.EGL_GREEN_SIZE, 6);
+				score += weightBits(EGL10.EGL_BLUE_SIZE, 5);
+				score += weightBits(EGL10.EGL_ALPHA_SIZE, 0);
+				score += weightBits(EGL10.EGL_DEPTH_SIZE, 0);
+				score += weightBits(EGL10.EGL_STENCIL_SIZE, 0);
+			}
+			
 			return score;
 		}
 
