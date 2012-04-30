@@ -42,5 +42,10 @@ MODULE_OBJS := \
 	tinygl/ztriangle.o \
 	tinygl/ztriangle_shadow.o
 
+ifdef USE_GLES
+MODULE_OBJS += \
+        glues/glues_project.o
+endif
+
 # Include common rules
 include $(srcdir)/rules.mk
