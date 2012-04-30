@@ -30,9 +30,33 @@
 #if defined (SDL_BACKEND) && !defined(__amigaos4__)
 #include <SDL_opengl.h>
 #undef ARRAYSIZE
+#elif defined (USE_GLES)
+#ifdef USE_GLES2
+#include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
+#else
+#include <GLES/gl.h>
+#include <GLES/glext.h>
+#endif
+#include "graphics/glues/glues_project.h"
 #else
 #include <GL/gl.h>
 #include <GL/glu.h>
+#endif
+
+#ifdef USE_GLES
+#define GL_CLAMP			GL_CLAMP_TO_EDGE
+#define glColor3f(r,g,b)	glColor4f((r),(g),(b),1.f)
+#define glColor3ub(r,g,b)	glColor4ub((r),(g),(b),255)
+#define glLoadMatrix		glLoadMatrixf
+#define glGetNativeFloatv	glGetFloatv
+#define glFrustum			glFrustumf
+#define glOrtho				glOrthof
+typedef GLfloat				GLnativeFloat;
+#else
+#define glLoadMatrix		glLoadMatrixd
+#define glGetNativeFloatv	glGetDoublev
+typedef GLdouble			GLnativeFloat;
 #endif
 
 namespace Grim {

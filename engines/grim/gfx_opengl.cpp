@@ -101,8 +101,10 @@ GfxOpenGL::GfxOpenGL() {
 GfxOpenGL::~GfxOpenGL() {
 	delete[] _storedDisplay;
 
+#ifndef USE_GLES
 	if (_emergFont && glIsList(_emergFont))
 		glDeleteLists(_emergFont, 128);
+#endif
 
 #ifdef GL_ARB_fragment_program
 	if (_useDepthShader)
@@ -313,22 +315,22 @@ void GfxOpenGL::getBoundingBoxPos(const Mesh *model, int *x1, int *y1, int *x2, 
 		return;
 	}
 
-	GLdouble top = 1000;
-	GLdouble right = -1000;
-	GLdouble left = 1000;
-	GLdouble bottom = -1000;
-	GLdouble winX, winY, winZ;
+	GLnativeFloat top = 1000;
+	GLnativeFloat right = -1000;
+	GLnativeFloat left = 1000;
+	GLnativeFloat bottom = -1000;
+	GLnativeFloat winX, winY, winZ;
 
 	for (int i = 0; i < model->_numFaces; i++) {
 		Math::Vector3d v;
 		float* pVertices;
 
 		for (int j = 0; j < model->_faces[i]._numVertices; j++) {
-			GLdouble modelView[16], projection[16];
+			GLnativeFloat modelView[16], projection[16];
 			GLint viewPort[4];
 
-			glGetDoublev(GL_MODELVIEW_MATRIX, modelView);
-			glGetDoublev(GL_PROJECTION_MATRIX, projection);
+			glGetNativeFloatv(GL_MODELVIEW_MATRIX, modelView);
+			glGetNativeFloatv(GL_PROJECTION_MATRIX, projection);
 			glGetIntegerv(GL_VIEWPORT, viewPort);
 
 			pVertices = model->_vertices + 3 * model->_faces[i]._vertices[j];
@@ -479,11 +481,27 @@ void GfxOpenGL::drawShadowPlanes() {
 	glDisable(GL_TEXTURE_2D);
 	for (SectorListType::iterator i = _currentShadowArray->planeList.begin(); i != _currentShadowArray->planeList.end(); ++i) {
 		Sector *shadowSector = i->sector;
+#ifdef USE_GLES
+		GLfloat *vertices = new GLfloat[shadowSector->getNumVertices() * 3];
+		for (int k = 0; k < shadowSector->getNumVertices(); k++) {
+			vertices[k * 3] = shadowSector->getVertices()[k].x();
+			vertices[k * 3 + 1] = shadowSector->getVertices()[k].y();
+			vertices[k * 3 + 2] = shadowSector->getVertices()[k].z();
+		}
+
+		glEnableClientState(GL_VERTEX_ARRAY);
+		glVertexPointer(3, GL_FLOAT, 0, vertices);
+		glDrawArrays(GL_TRIANGLE_FAN, 0, shadowSector->getNumVertices());
+		glDisableClientState(GL_VERTEX_ARRAY);
+
+		delete[] vertices;
+#else
 		glBegin(GL_POLYGON);
 		for (int k = 0; k < shadowSector->getNumVertices(); k++) {
 			glVertex3f(shadowSector->getVertices()[k].x(), shadowSector->getVertices()[k].y(), shadowSector->getVertices()[k].z());
 		}
 		glEnd();
+#endif
 	}
 	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
@@ -528,6 +546,53 @@ void GfxOpenGL::drawEMIModelFace(const EMIModel* model, const EMIMeshFace* face)
 	glDisable(GL_LIGHTING);
 	glEnable(GL_TEXTURE_2D);
 
+#ifdef USE_GLES
+	float *tex = new float[face->_faceLength * 3 * 2];
+	float *vert = new float[face->_faceLength * 3 * 3];
+	float *norm = new float[face->_faceLength * 3 * 3];
+	GLubyte *color = new GLubyte[face->_faceLength * 3 * 4];
+
+	for (uint j = 0; j < face->_faceLength * 3; j++) {
+		int index = indices[j];
+
+		Math::Vector3d normal = model->_normals[index];
+		Math::Vector3d vertex = model->_drawVertices[index];
+
+		memcpy(&vert[3 * j], vertex.getData(), 3 * sizeof(float));
+		memcpy(&norm[3 * j], normal.getData(), 3 * sizeof(float));
+		if (face->_hasTexture) {
+			tex[2 * j] = model->_texVerts[index].getX();
+			tex[2 * j + 1] = model->_texVerts[index].getY();
+		} else {
+			// FIXME
+			tex[2 * j] = 0;
+			tex[2 * j + 1] = 0;
+		}
+		color[4 * j] = model->_colorMap[index].r;
+		color[4 * j + 1] = model->_colorMap[index].g;
+		color[4 * j + 2] = model->_colorMap[index].b;
+		color[4 * j + 3] = (int)(model->_colorMap[index].a * _alpha);
+	}
+
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glEnableClientState(GL_NORMAL_ARRAY);
+	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+	glEnableClientState(GL_COLOR_ARRAY);
+	glNormalPointer(GL_FLOAT, 0, norm);
+	glTexCoordPointer(2, GL_FLOAT, 0, tex);
+	glColorPointer(4, GL_UNSIGNED_BYTE, 0, color);
+	glVertexPointer(3, GL_FLOAT, 0, vert);
+	glDrawArrays(GL_TRIANGLE_FAN, 0, face->_faceLength * 3);
+	glDisableClientState(GL_COLOR_ARRAY);
+	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+	glDisableClientState(GL_NORMAL_ARRAY);
+	glDisableClientState(GL_VERTEX_ARRAY);
+
+	delete[] vert;
+	delete[] tex;
+	delete[] norm;
+	delete[] color;
+#else
 	glBegin(GL_TRIANGLES);
 	for (uint j = 0; j < face->_faceLength * 3; j++) {
 		int index = indices[j];
@@ -543,6 +608,7 @@ void GfxOpenGL::drawEMIModelFace(const EMIModel* model, const EMIMeshFace* face)
 		glVertex3fv(vertex.getData());
 	}
 	glEnd();
+#endif
 	glEnable(GL_TEXTURE_2D);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_ALPHA_TEST);
@@ -555,6 +621,44 @@ void GfxOpenGL::drawModelFace(const MeshFace *face, float *vertices, float *vert
 	// in Manny's Office
 	glAlphaFunc(GL_GREATER, 0.5);
 	glEnable(GL_ALPHA_TEST);
+
+#ifdef USE_GLES
+
+	const float *initNormal = face->_normal.getData();
+	glNormal3f(initNormal[0], initNormal[1], initNormal[2]);
+
+	float *tex = 0;
+	float *vert = new float[face->_numVertices * 3];
+	float *norm = new float[face->_numVertices * 3];
+
+	if (face->_texVertices)
+		tex = new float[face->_numVertices * 2];
+
+	for (int i = 0; i < face->_numVertices; i++) {
+		memcpy(&vert[3 * i], &vertices[3 * face->_vertices[i]], 3 * sizeof(float));
+		memcpy(&norm[3 * i], &vertNormals[3 * face->_vertices[i]], 3 * sizeof(float));
+		memcpy(&tex[2 * i], &textureVerts[2 * face->_texVertices[i]], 2 * sizeof(float));
+	}
+
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glEnableClientState(GL_NORMAL_ARRAY);
+	glNormalPointer(GL_FLOAT, 0, norm);
+	if (tex) {
+		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+		glTexCoordPointer(2, GL_FLOAT, 0, tex);
+	}
+	glVertexPointer(3, GL_FLOAT, 0, vert);
+	glDrawArrays(GL_TRIANGLE_FAN, 0, face->_numVertices);
+	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+	glDisableClientState(GL_NORMAL_ARRAY);
+	glDisableClientState(GL_VERTEX_ARRAY);
+
+	delete[] vert;
+	delete[] tex;
+	delete[] norm;
+
+#else
+
 	glNormal3fv(face->_normal.getData());
 	glBegin(GL_POLYGON);
 	for (int i = 0; i < face->_numVertices; i++) {
@@ -566,6 +670,9 @@ void GfxOpenGL::drawModelFace(const MeshFace *face, float *vertices, float *vert
 		glVertex3fv(vertices + 3 * face->_vertices[i]);
 	}
 	glEnd();
+
+#endif
+
 	// Done with transparency-capable objects
 	glDisable(GL_ALPHA_TEST);
 }
@@ -577,8 +684,8 @@ void GfxOpenGL::drawSprite(const Sprite *sprite) {
 	glPushMatrix();
 	glTranslatef(sprite->_pos.x(), sprite->_pos.y(), sprite->_pos.z());
 
-	GLdouble modelview[16];
-	glGetDoublev(GL_MODELVIEW_MATRIX, modelview);
+	GLnativeFloat modelview[16];
+	glGetNativeFloatv(GL_MODELVIEW_MATRIX, modelview);
 
 	// We want screen-aligned sprites so reset the rotation part of the matrix.
 	for (int i = 0; i < 3; i++) {
@@ -590,12 +697,35 @@ void GfxOpenGL::drawSprite(const Sprite *sprite) {
 			}
 		}
 	}
-	glLoadMatrixd(modelview);
+	glLoadMatrix(modelview);
 
 	glAlphaFunc(GL_GREATER, 0.5);
 	glEnable(GL_ALPHA_TEST);
 	glDisable(GL_LIGHTING);
 
+#ifdef USE_GLES
+	const GLfloat vertices[] = {
+		(sprite->_width / 2) *_scaleW, sprite->_height * _scaleH, 0.0f,
+		(sprite->_width / 2) * _scaleW, 0.0f, 0.0f,
+		(-sprite->_width / 2) * _scaleW, 0.0f, 0.0f,
+		(-sprite->_width / 2) * _scaleW, sprite->_height * _scaleH, 0.0f
+	};
+
+	const GLfloat texCoords[] = {
+		0.0f, 0.0f,
+		0.0f, 1.0f,
+		1.0f, 1.0f,
+		1.0f, 0.0f
+	};
+
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+	glVertexPointer(3, GL_FLOAT, 0, vertices);
+	glTexCoordPointer(2, GL_FLOAT, 0, texCoords);
+	glDrawArrays(GL_TRIANGLE_FAN, 0, ARRAYSIZE(vertices) / 2);
+	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+	glDisableClientState(GL_VERTEX_ARRAY);
+#else
 	glBegin(GL_POLYGON);
 	glTexCoord2f(0.0f, 0.0f);
 	glVertex3f((sprite->_width / 2) *_scaleW, sprite->_height * _scaleH, 0.0f);
@@ -606,6 +736,7 @@ void GfxOpenGL::drawSprite(const Sprite *sprite) {
 	glTexCoord2f(1.0f, 0.0f);
 	glVertex3f((-sprite->_width / 2) * _scaleW, sprite->_height * _scaleH, 0.0f);
 	glEnd();
+#endif
 
 	glEnable(GL_LIGHTING);
 	glDisable(GL_ALPHA_TEST);
@@ -734,13 +865,20 @@ void GfxOpenGL::createBitmap(BitmapData *bitmap) {
 		GLint type = GL_UNSIGNED_BYTE;
 		int bytes = 4;
 		if (bitmap->_format != 1) {
+#ifndef USE_GLES
 			format = GL_DEPTH_COMPONENT;
+#else
+			// FIXME
+			format = GL_RGB;
+#endif
 			type = GL_UNSIGNED_SHORT;
 			bytes = 2;
 		}
 
 		glPixelStorei(GL_UNPACK_ALIGNMENT, bytes);
+#ifndef USE_GLES
 		glPixelStorei(GL_UNPACK_ROW_LENGTH, bitmap->_width);
+#endif
 
 		for (int pic = 0; pic < bitmap->_numImages; pic++) {
 			if (bitmap->_format == 1 && bitmap->_bpp == 16 && bitmap->_colorFormat != BM_RGB1555) {
@@ -788,14 +926,23 @@ void GfxOpenGL::createBitmap(BitmapData *bitmap) {
 					int width  = (x + BITMAP_TEXTURE_SIZE >= bitmap->_width) ? (bitmap->_width - x) : BITMAP_TEXTURE_SIZE;
 					int height = (y + BITMAP_TEXTURE_SIZE >= bitmap->_height) ? (bitmap->_height - y) : BITMAP_TEXTURE_SIZE;
 					glBindTexture(GL_TEXTURE_2D, textures[cur_tex_idx]);
+#ifdef USE_GLES
+					for (int line = 0; line < height; ++line) {
+						glTexSubImage2D(GL_TEXTURE_2D, 0, 0, line, width, 1, format, type,
+							texOut + ((y + line) * bytes * bitmap->_width) + (bytes * x));
+					}
+#else
 					glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, format, type,
 						texOut + (y * bytes * bitmap->_width) + (bytes * x));
+#endif
 					cur_tex_idx++;
 				}
 			}
 		}
 
+#ifndef USE_GLES
 		glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+#endif
 
 		delete[] texData;
 		bitmap->freeData();
@@ -860,6 +1007,31 @@ void GfxOpenGL::drawBitmap(const Bitmap *bitmap, int dx, int dy) {
 		for (int x = dx; x < (dx + bitmap->getWidth()); x += BITMAP_TEXTURE_SIZE) {
 			textures = (GLuint *)bitmap->getTexIds();
 			glBindTexture(GL_TEXTURE_2D, textures[cur_tex_idx]);
+
+#ifdef USE_GLES
+
+			const GLfloat vertices[] = {
+				x * _scaleW, y * _scaleH,
+				(x + BITMAP_TEXTURE_SIZE) * _scaleW, y * _scaleH,
+				(x + BITMAP_TEXTURE_SIZE) * _scaleW, (y + BITMAP_TEXTURE_SIZE)  * _scaleH,
+				x * _scaleW, (y + BITMAP_TEXTURE_SIZE) * _scaleH
+			};
+
+			const GLfloat texCoords[] = {
+				0.0f, 0.0f,
+				1.0f, 0.0f,
+				1.0f, 1.0f,
+				0.0f, 1.0f
+			};
+
+			glEnableClientState(GL_VERTEX_ARRAY);
+			glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+			glVertexPointer(2, GL_FLOAT, 0, vertices);
+			glTexCoordPointer(2, GL_FLOAT, 0, texCoords);
+			glDrawArrays(GL_TRIANGLE_FAN, 0, ARRAYSIZE(vertices) / 2);
+			glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+			glDisableClientState(GL_VERTEX_ARRAY);
+#else
 			glBegin(GL_QUADS);
 			glTexCoord2f(0.0f, 0.0f);
 			glVertex2f(x * _scaleW, y * _scaleH);
@@ -870,6 +1042,7 @@ void GfxOpenGL::drawBitmap(const Bitmap *bitmap, int dx, int dy) {
 			glTexCoord2f(0.0f, 1.0f);
 			glVertex2f(x * _scaleW, (y + BITMAP_TEXTURE_SIZE) * _scaleH);
 			glEnd();
+#endif
 			cur_tex_idx++;
 		}
 	}
@@ -1046,6 +1219,33 @@ void GfxOpenGL::drawTextObject(TextObject *text) {
 			float width = 1 / 16.f;
 			float cx = ((character - 1) % 16) / 16.0f;
 			float cy = ((character - 1) / 16) / 16.0f;
+
+#ifdef USE_GLES
+
+			const GLfloat vertices[] = {
+				z, w,
+				z + size, w,
+				z + size, w + size,
+				z, w + size
+			};
+
+			const GLfloat texCoords[] = {
+				cx, cy,
+				cx + width, cy,
+				cx + width, cy + width,
+				cx, cy + width
+			};
+
+			glEnableClientState(GL_VERTEX_ARRAY);
+			glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+			glVertexPointer(2, GL_FLOAT, 0, vertices);
+			glTexCoordPointer(2, GL_FLOAT, 0, texCoords);
+			glDrawArrays(GL_TRIANGLE_FAN, 0, ARRAYSIZE(vertices) / 2);
+			glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+			glDisableClientState(GL_VERTEX_ARRAY);
+
+#else
+
 			glBegin(GL_QUADS);
 			glTexCoord2f(cx, cy);
 			glVertex2f(z, w);
@@ -1056,6 +1256,9 @@ void GfxOpenGL::drawTextObject(TextObject *text) {
 			glTexCoord2f(cx, cy + width);
 			glVertex2f(z, w + size);
 			glEnd();
+
+#endif
+
 			x += font->getCharWidth(character);
 		}
 	}
@@ -1105,7 +1308,12 @@ void GfxOpenGL::createMaterial(Texture *material, const char *data, const CMap *
 		format = GL_RGBA;
 		internalFormat = GL_RGBA;
 	} else {	// The only other colorFormat we load right now is BGR
+#ifndef USE_GLES
 		format = GL_BGR;
+#else
+		// FIXME
+		format = GL_RGB;
+#endif
 		internalFormat = GL_RGB;
 	}
 
@@ -1144,11 +1352,15 @@ void GfxOpenGL::drawDepthBitmap(int x, int y, int w, int h, char *data) {
 	//	warning("Animation not handled yet in GL texture path");
 	//}
 
+#ifndef USE_GLES
 	if (y + h == 480) {
 		glRasterPos2i(x, _screenHeight - 1);
 		glBitmap(0, 0, 0, 0, 0, -1, NULL);
 	} else
 		glRasterPos2i(x, y + h);
+#else
+	// TODO
+#endif
 
 	glDisable(GL_TEXTURE_2D);
 	glEnable(GL_DEPTH_TEST);
@@ -1157,7 +1369,11 @@ void GfxOpenGL::drawDepthBitmap(int x, int y, int w, int h, char *data) {
 	glDepthMask(GL_TRUE);
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 2);
 
+#ifndef USE_GLES
 	glDrawPixels(w, h, GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT, data);
+#else
+	// TODO
+#endif
 
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
@@ -1191,7 +1407,9 @@ void GfxOpenGL::prepareMovieFrame(Graphics::Surface* frame) {
 	}
 
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 2);
+#ifndef USE_GLES
 	glPixelStorei(GL_UNPACK_ROW_LENGTH, width);
+#endif
 
 	int curTexIdx = 0;
 	for (int y = 0; y < height; y += BITMAP_TEXTURE_SIZE) {
@@ -1199,12 +1417,21 @@ void GfxOpenGL::prepareMovieFrame(Graphics::Surface* frame) {
 			int t_width = (x + BITMAP_TEXTURE_SIZE >= width) ? (width - x) : BITMAP_TEXTURE_SIZE;
 			int t_height = (y + BITMAP_TEXTURE_SIZE >= height) ? (height - y) : BITMAP_TEXTURE_SIZE;
 			glBindTexture(GL_TEXTURE_2D, _smushTexIds[curTexIdx]);
+#ifdef USE_GLES
+			for (int line = 0; line < t_height; ++line) {
+				glTexSubImage2D(GL_TEXTURE_2D, 0, 0, line, t_width, 1, GL_RGB,
+					GL_UNSIGNED_SHORT_5_6_5, bitmap + ((y + line) * 2 * width) + (2 * x));
+			}
+#else
 			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, t_width, t_height, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, bitmap + (y * 2 * width) + (2 * x));
+#endif
 			curTexIdx++;
 		}
 	}
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+#ifndef USE_GLES
 	glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+#endif
 	_smushWidth = (int)(width * _scaleW);
 	_smushHeight = (int)(height * _scaleH);
 }
@@ -1237,6 +1464,33 @@ void GfxOpenGL::drawMovieFrame(int offsetX, int offsetY) {
 	for (int y = 0; y < _smushHeight; y += (int)(BITMAP_TEXTURE_SIZE * _scaleH)) {
 		for (int x = 0; x < _smushWidth; x += (int)(BITMAP_TEXTURE_SIZE * _scaleW)) {
 			glBindTexture(GL_TEXTURE_2D, _smushTexIds[curTexIdx]);
+
+#ifdef USE_GLES
+
+			const GLfloat vertices[] = {
+				x + offsetX, y + offsetY,
+				x + offsetX + BITMAP_TEXTURE_SIZE * _scaleW, y + offsetY,
+				x + offsetX + BITMAP_TEXTURE_SIZE * _scaleW, y + offsetY + BITMAP_TEXTURE_SIZE * _scaleH,
+				x + offsetX, y + offsetY + BITMAP_TEXTURE_SIZE * _scaleH
+			};
+
+			const GLfloat texCoords[] = {
+				0, 0,
+				1.0f, 0.0f,
+				1.0f, 1.0f,
+				0.0f, 1.0f
+			};
+
+			glEnableClientState(GL_VERTEX_ARRAY);
+			glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+			glVertexPointer(2, GL_FLOAT, 0, vertices);
+			glTexCoordPointer(2, GL_FLOAT, 0, texCoords);
+			glDrawArrays(GL_TRIANGLE_FAN, 0, ARRAYSIZE(vertices) / 2);
+			glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+			glDisableClientState(GL_VERTEX_ARRAY);
+
+#else
+
 			glBegin(GL_QUADS);
 			glTexCoord2f(0, 0);
 			glVertex2f(x + offsetX, y + offsetY);
@@ -1247,6 +1501,9 @@ void GfxOpenGL::drawMovieFrame(int offsetX, int offsetY) {
 			glTexCoord2f(0.0f, 1.0f);
 			glVertex2f(x + offsetX, y + offsetY + BITMAP_TEXTURE_SIZE * _scaleH);
 			glEnd();
+
+#endif
+
 			curTexIdx++;
 		}
 	}
@@ -1269,12 +1526,16 @@ void GfxOpenGL::releaseMovieFrame() {
 void GfxOpenGL::loadEmergFont() {
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
+#ifndef USE_GLES
 	_emergFont = glGenLists(128);
 	for (int i = 32; i < 127; i++) {
 		glNewList(_emergFont + i, GL_COMPILE);
 		glBitmap(8, 13, 0, 2, 10, 0, Font::emerFont[i - 32]);
 		glEndList();
 	}
+#else
+	// TODO
+#endif
 }
 
 void GfxOpenGL::drawEmergString(int x, int y, const char *text, const Color &fgColor) {
@@ -1288,11 +1549,15 @@ void GfxOpenGL::drawEmergString(int x, int y, const char *text, const Color &fgC
 	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_LIGHTING);
 
+#ifndef USE_GLES
 	glRasterPos2i(x, y);
 	glColor3f(1.0f, 1.0f, 1.0f);
 
 	glListBase(_emergFont);
 	glCallLists(strlen(text), GL_UNSIGNED_BYTE, (const GLubyte *)text);
+#else
+	// TODO
+#endif
 
 	glEnable(GL_LIGHTING);
 
@@ -1346,9 +1611,13 @@ void GfxOpenGL::copyStoredToDisplay() {
 	glDisable(GL_DEPTH_TEST);
 	glDepthMask(GL_FALSE);
 
+#ifndef USE_GLES
 	glRasterPos2i(0, _screenHeight - 1);
 	glBitmap(0, 0, 0, 0, 0, -1, NULL);
 	glDrawPixels(_screenWidth, _screenHeight, GL_RGBA, GL_UNSIGNED_BYTE, _storedDisplay);
+#else
+	// TODO
+#endif
 
 	glDepthMask(GL_TRUE);
 	glEnable(GL_DEPTH_TEST);
@@ -1456,9 +1725,13 @@ void GfxOpenGL::dimRegion(int x, int yReal, int w, int h, float level) {
 	glDisable(GL_DEPTH_TEST);
 	glDepthMask(GL_FALSE);
 
+#ifndef USE_GLES
 	// Set the raster position and draw the bitmap
 	glRasterPos2i(x, yReal + h);
 	glDrawPixels(w, h, GL_RGBA, GL_UNSIGNED_BYTE, data);
+#else
+	// TODO
+#endif
 
 	glDepthMask(GL_TRUE);
 	glEnable(GL_DEPTH_TEST);
@@ -1525,6 +1798,52 @@ void GfxOpenGL::drawRectangle(PrimitiveObject *primitive) {
 
 	glColor3ub(color.getRed(), color.getGreen(), color.getBlue());
 
+#ifdef USE_GLES
+
+	glEnableClientState(GL_VERTEX_ARRAY);
+	if (primitive->isFilled()) {
+		const GLfloat vertices[] = {
+			x1, y1,
+			x2, y1,
+			x2, y2,
+			x1, y2
+		};
+		glVertexPointer(2, GL_FLOAT, 0, vertices);
+		glDrawArrays(GL_TRIANGLE_FAN, 0, ARRAYSIZE(vertices) / 2);
+	} else {
+		const GLfloat vertices[][4 * 2] = {
+			{ // top line
+				x1, y1,
+				x2 + 1, y1,
+				x2 + 1, y1 + 1,
+				x1, y1 + 1
+			}, { // right line
+				x2, y1,
+				x2 + 1, y1,
+				x2 + 1, y2 + 1,
+				x2, y2
+			}, { // bottom line
+				x1, y2,
+				x2 + 1, y2,
+				x2 + 1, y2 + 1,
+				x1, y2 + 1
+			}, { // left line
+				x1, y1,
+				x1 + 1, y1,
+				x1 + 1, y2 + 1,
+				x1, y2
+			}
+		};
+		for (int i = 0; i < 4; ++i) {
+			glVertexPointer(2, GL_FLOAT, 0, vertices[i]);
+			glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+		}
+	}
+
+	glDisableClientState(GL_VERTEX_ARRAY);
+
+#else
+
 	if (primitive->isFilled()) {
 		glBegin(GL_QUADS);
 		glVertex2f(x1, y1);
@@ -1563,6 +1882,8 @@ void GfxOpenGL::drawRectangle(PrimitiveObject *primitive) {
 		glEnd();
 	}
 
+#endif
+
 	glColor3f(1.0f, 1.0f, 1.0f);
 
 	glDepthMask(GL_TRUE);
@@ -1592,10 +1913,26 @@ void GfxOpenGL::drawLine(PrimitiveObject *primitive) {
 
 	glLineWidth(_scaleW);
 
+#ifdef USE_GLES
+
+	const GLfloat vertices[] = {
+		x1, y1,
+		x2, y2
+	};
+
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glVertexPointer(2, GL_FLOAT, 0, vertices);
+	glDrawArrays(GL_LINES, 0, ARRAYSIZE(vertices) / 2);
+	glDisableClientState(GL_VERTEX_ARRAY);
+
+#else
+
 	glBegin(GL_LINES);
 	glVertex2f(x1, y1);
 	glVertex2f(x2, y2);
 	glEnd();
+
+#endif
 
 	glColor3f(1.0f, 1.0f, 1.0f);
 
@@ -1628,6 +1965,22 @@ void GfxOpenGL::drawPolygon(PrimitiveObject *primitive) {
 
 	glColor3f(color.getRed() / 255.0f, color.getGreen() / 255.0f, color.getBlue() / 255.0f);
 
+#ifdef USE_GLES
+
+	const GLfloat vertices[] = {
+		x1, y1,
+		x2, y2,
+		x3, y3,
+		x4, y4
+	};
+
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glVertexPointer(2, GL_FLOAT, 0, vertices);
+	glDrawArrays(GL_LINES, 0, ARRAYSIZE(vertices) / 2);
+	glDisableClientState(GL_VERTEX_ARRAY);
+
+#else
+
 	glBegin(GL_LINES);
 	glVertex2f(x1, y1);
 	glVertex2f(x2, y2);
@@ -1637,6 +1990,8 @@ void GfxOpenGL::drawPolygon(PrimitiveObject *primitive) {
 	glVertex2f(x3, y3);
 	glVertex2f(x4, y4);
 	glEnd();
+
+#endif
 
 	glColor3f(1.0f, 1.0f, 1.0f);
 
