@@ -148,6 +148,7 @@ bool DefaultEventManager::pollEvent(Common::Event &event) {
 			break;
 
 		case Common::EVENT_MAINMENU:
+			/*
 			if (g_engine && !g_engine->isPaused())
 				g_engine->openMainMenuDialog();
 
@@ -156,6 +157,7 @@ bool DefaultEventManager::pollEvent(Common::Event &event) {
 			else if (_shouldRTL)
 				event.type = Common::EVENT_RTL;
 			break;
+			*/
 #ifdef ENABLE_VKEYBD
 		case Common::EVENT_VIRTUAL_KEYBOARD:
 			if (_vk->isDisplaying()) {

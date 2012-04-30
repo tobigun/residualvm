@@ -88,9 +88,18 @@ bool VirtualKeyboard::openPack(const String &packName, const FSNode &node) {
 		return true;
 	}
 
+	_fileArchive = 0;
+	// compressed keyboard pack
 	if (node.getChild(packName + ".zip").exists()) {
-		// compressed keyboard pack
 		_fileArchive = makeZipArchive(node.getChild(packName + ".zip"));
+	} else {
+		Common::ArchiveMemberPtr member = SearchMan.getMember(packName + ".zip");
+		if (member) {
+			_fileArchive = makeZipArchive(member->createReadStream());
+		}
+	}
+
+	if (_fileArchive) {
 		if (_fileArchive && _fileArchive->hasFile(packName + ".xml")) {
 			if (!_parser->loadStream(_fileArchive->createReadStreamForMember(packName + ".xml"))) {
 				delete _fileArchive;
