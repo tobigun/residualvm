@@ -27,6 +27,31 @@
 #include "common/system.h"
 #include "math/vector3d.h"
 
+#ifdef SDL_BACKEND
+#include <SDL_opengl.h>
+#elif defined (USE_GLES)
+#ifdef USE_GLES2
+#include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
+#else
+#include <GLES/gl.h>
+#include <GLES/glext.h>
+#endif
+#include "graphics/glues/glues_project.h"
+#else
+#include <GL/gl.h>
+#include <GL/glu.h>
+#endif
+
+#ifdef USE_GLES
+#define glColor3f(r,g,b)	glColor4f((r),(g),(b),1.f)
+#define glGetNativeFloatv	glGetFloatv
+typedef GLfloat				GLnativeFloat;
+#else
+#define glGetNativeFloatv	glGetDoublev
+typedef GLdouble			GLnativeFloat;
+#endif
+
 namespace Myst3 {
 
 class Drawable {
@@ -86,8 +111,8 @@ protected:
 	Texture *_font;
 
 	int _cubeViewport[4];
-	double _cubeProjectionMatrix[16];
-	double _cubeModelViewMatrix[16];
+	GLnativeFloat _cubeProjectionMatrix[16];
+	GLnativeFloat _cubeModelViewMatrix[16];
 
 	Common::Rect getFontCharacterRect(uint8 character);
 };

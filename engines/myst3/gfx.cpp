@@ -36,13 +36,6 @@
 
 #include "math/vector2d.h"
 
-#ifdef SDL_BACKEND
-#include <SDL_opengl.h>
-#else
-#include <GL/gl.h>
-#include <GL/glu.h>
-#endif
-
 namespace Myst3 {
 
 class OpenGLTexture : public Texture {
@@ -179,8 +172,8 @@ void Renderer::setupCameraPerspective(float pitch, float heading, float fov) {
 	glRotatef(pitch, -1.0f, 0.0f, 0.0f);
 	glRotatef(heading - 180.0f, 0.0f, 1.0f, 0.0f);
 
-	glGetDoublev(GL_MODELVIEW_MATRIX, _cubeModelViewMatrix);
-	glGetDoublev(GL_PROJECTION_MATRIX, _cubeProjectionMatrix);
+	glGetNativeFloatv(GL_MODELVIEW_MATRIX, _cubeModelViewMatrix);
+	glGetNativeFloatv(GL_PROJECTION_MATRIX, _cubeProjectionMatrix);
 	glGetIntegerv(GL_VIEWPORT, (GLint *)_cubeViewport);
 }
 
@@ -196,12 +189,16 @@ void Renderer::drawRect2D(const Common::Rect &rect, uint32 color) {
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	}
 
+#ifdef USE_GLES
+	// TODO
+#else
 	glBegin(GL_TRIANGLE_STRIP);
 		glVertex3f( rect.left, rect.bottom, 0.0f);
 		glVertex3f( rect.right, rect.bottom, 0.0f);
 		glVertex3f( rect.left, rect.top, 0.0f);
 		glVertex3f( rect.right, rect.top, 0.0f);
 	glEnd();
+#endif
 
 	glDisable(GL_BLEND);
 }
@@ -233,6 +230,9 @@ void Renderer::drawTexturedRect2D(const Common::Rect &screenRect, const Common::
 	glDepthMask(GL_FALSE);
 
 	glBindTexture(GL_TEXTURE_2D, glTexture->id);
+#ifdef USE_GLES
+	// TODO
+#else
 	glBegin(GL_TRIANGLE_STRIP);
 		glTexCoord2f(tLeft, tTop + tHeight);
 		glVertex3f(sLeft + 0, sTop + sHeight, 1.0f);
@@ -246,6 +246,7 @@ void Renderer::drawTexturedRect2D(const Common::Rect &screenRect, const Common::
 		glTexCoord2f(tLeft + tWidth, tTop);
 		glVertex3f(sLeft + sWidth, sTop + 0, 1.0f);
 	glEnd();
+#endif
 
 	glDisable(GL_BLEND);
 	glDepthMask(GL_TRUE);
@@ -295,6 +296,9 @@ void Renderer::draw2DText(const Common::String &text, const Common::Point &posit
 		float cx = textureRect.left / (float) glFont->internalWidth;
 		float cy = textureRect.top / (float) glFont->internalHeight;
 
+#ifdef USE_GLES
+	// TODO
+#else
 		glBegin(GL_QUADS);
 		glTexCoord2f(cx, cy + ch);
 		glVertex3f(x, y, 1.0f);
@@ -305,6 +309,7 @@ void Renderer::draw2DText(const Common::String &text, const Common::Point &posit
 		glTexCoord2f(cx, cy);
 		glVertex3f(x, y + h, 1.0f);
 		glEnd();
+#endif
 
 		x += textureRect.width() - 3;
 	}
@@ -326,6 +331,9 @@ void Renderer::drawCube(Texture **textures) {
 	glEnable(GL_TEXTURE_2D);
 	glDepthMask(GL_FALSE);
 
+#ifdef USE_GLES
+	// TODO
+#else
 	glBindTexture(GL_TEXTURE_2D, static_cast<OpenGLTexture *>(textures[4])->id);
 	glBegin(GL_TRIANGLE_STRIP);			// X-
 		glTexCoord2f(0, s); glVertex3f(-t,-t, t);
@@ -373,6 +381,7 @@ void Renderer::drawCube(Texture **textures) {
 		glTexCoord2f(0, 0); glVertex3f( t, t, t);
 		glTexCoord2f(s, 0); glVertex3f(-t, t, t);
 	glEnd();
+#endif
 
 	glDepthMask(GL_TRUE);
 }
@@ -390,6 +399,9 @@ void Renderer::drawTexturedRect3D(const Math::Vector3d &topLeft, const Math::Vec
 
 	glBindTexture(GL_TEXTURE_2D, glTexture->id);
 
+#ifdef USE_GLES
+	// TODO
+#else
 	glBegin(GL_TRIANGLE_STRIP);
 		glTexCoord2f(0, 0);
 		glVertex3f(-topLeft.x(), topLeft.y(), topLeft.z());
@@ -403,6 +415,7 @@ void Renderer::drawTexturedRect3D(const Math::Vector3d &topLeft, const Math::Vec
 		glTexCoord2f(w, h);
 		glVertex3f(-bottomRight.x(), bottomRight.y(), bottomRight.z());
 	glEnd();
+#endif
 
 	glDisable(GL_BLEND);
 }
@@ -417,7 +430,7 @@ Graphics::Surface *Renderer::getScreenshot() {
 }
 
 void Renderer::screenPosToDirection(const Common::Point screen, float &pitch, float &heading) {
-	double x, y, z;
+	GLnativeFloat x, y, z;
 
 	// Screen coords to 3D coords
 	gluUnProject(screen.x, kOriginalHeight - screen.y, 0.9, _cubeModelViewMatrix, _cubeProjectionMatrix, (GLint *)_cubeViewport, &x, &y, &z);
