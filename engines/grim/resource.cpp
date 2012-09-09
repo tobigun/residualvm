@@ -20,6 +20,8 @@
  *
  */
 
+#include "gui/error.h"
+
 #include "engines/grim/resource.h"
 #include "engines/grim/colormap.h"
 #include "engines/grim/costume.h"
@@ -92,7 +94,6 @@ ResourceLoader::ResourceLoader() {
 				error("residualvm-grim-patch.lab not found");
 
 			SearchMan.listMatchingMembers(files, "residualvm-grim-patch.lab");
-			SearchMan.listMatchingMembers(files, "datausr.lab");
 			SearchMan.listMatchingMembers(files, "data005.lab");
 			SearchMan.listMatchingMembers(files, "data004.lab");
 			SearchMan.listMatchingMembers(files, "data003.lab");
@@ -110,17 +111,14 @@ ResourceLoader::ResourceLoader() {
 
 			//Check the presence of datausr.lab and if the user wants to load it.
 			//In this case put it in the top of the list
-			Common::ArchiveMemberList::iterator datausr_it = Common::find_if(files.begin(), files.end(), LabListComperator("datausr.lab"));
-			if (datausr_it != files.end()) {
-				if (ConfMan.getBool("datausr_load")) {
-					warning("Loading datausr.lab. Please note that the ResidualVM-team doesn't provide support for using such patches");
-					files.push_front(*datausr_it);
-				}
-				files.erase(datausr_it);
+			const char *datausr_name = "datausr.lab";
+			if (SearchMan.hasFile(datausr_name) && ConfMan.getBool("datausr_load")) {
+				warning("Loading datausr.lab. Please note that the ResidualVM-team doesn't provide support for using such patches");
+				files.push_front(SearchMan.getMember(datausr_name));
 			}
 		}
 	} else if (g_grim->getGameType() == GType_MONKEY4) {
-		if (g_grim->getGameFlags() == ADGF_DEMO) {
+		if (g_grim->getGameFlags() & ADGF_DEMO) {
 			SearchMan.listMatchingMembers(files, "i9n.lab");
 			SearchMan.listMatchingMembers(files, "lip.lab");
 			SearchMan.listMatchingMembers(files, "MagDemo.lab");
@@ -149,7 +147,33 @@ ResourceLoader::ResourceLoader() {
 			SearchMan.listMatchingMembers(files, "sfx.m4b");
 			SearchMan.listMatchingMembers(files, "voice???.m4b");
 			SearchMan.listMatchingMembers(files, "music?.m4b");
+
+			if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+				SearchMan.listMatchingMembers(files, "???.m4b");
+			}
 		}
+	}
+
+	// Check if the update has correctly loaded
+	if (!(g_grim->getGameFlags() & ADGF_DEMO || SearchMan.hasArchive("update"))) {
+		const char *errorMessage = 0;
+		if (g_grim->getGameType() == GType_GRIM) {
+			errorMessage = 	"Unsupported version of Grim Fandango.\n"
+							"Please download the original patch from\n"
+							"http://www.residualvm.org/downloads/\n"
+							"and put it in the game data files directory";
+			GUI::displayErrorDialog(errorMessage);
+			error("gfupd101.exe not found");
+		}
+
+		//Don't force the update for MI4 for now
+		/*else if (g_grim->getGameType() == GType_MONKEY4)
+			errorMessage = 	"Unsupported version of Escape from Monkey Island.\n"
+							"Please download the original patch from\n"
+							"http://www.residualvm.org/downloads/\n"
+							"and put it in the game data files directory.\n"
+							"Pay attention to download the correct version according to the game's language";
+		*/
 	}
 
 	if (files.empty())
@@ -231,19 +255,7 @@ Common::SeekableReadStream *ResourceLoader::loadFile(const Common::String &filen
 	else
 		return NULL;
 
-	Common::String patchfile = filename + ".patchr";
-	if (SearchMan.hasFile(patchfile)) {
-		Debug::debug(Debug::Patchr, "Patch requested for %s", filename.c_str());
-		Patchr p;
-		p.loadPatch(SearchMan.createReadStreamForMember(patchfile));
-		bool success = p.patchFile(rs, filename);
-		if (success)
-			Debug::debug(Debug::Patchr, "%s successfully patched", filename.c_str());
-		else
-			warning("Patching of %s failed", filename.c_str());
-		rs->seek(0, SEEK_SET);
-	}
-
+	rs = wrapPatchedFile(rs, filename);
 	return rs;
 }
 
@@ -296,7 +308,7 @@ CMap *ResourceLoader::loadColormap(const Common::String &filename) {
 	return result;
 }
 
-static Common::String fixFilename(const Common::String filename, bool append = true) {
+Common::String ResourceLoader::fixFilename(const Common::String &filename, bool append) {
 	Common::String fname(filename);
 	if (g_grim->getGameType() == GType_MONKEY4) {
 		int len = fname.size();

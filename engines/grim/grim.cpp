@@ -20,14 +20,8 @@
  *
  */
 
-#define FORBIDDEN_SYMBOL_EXCEPTION_setjmp
-#define FORBIDDEN_SYMBOL_EXCEPTION_longjmp
 #define FORBIDDEN_SYMBOL_EXCEPTION_fprintf
 #define FORBIDDEN_SYMBOL_EXCEPTION_fgetc
-#define FORBIDDEN_SYMBOL_EXCEPTION_chdir
-#define FORBIDDEN_SYMBOL_EXCEPTION_getcwd
-#define FORBIDDEN_SYMBOL_EXCEPTION_getwd
-#define FORBIDDEN_SYMBOL_EXCEPTION_unlink
 #define FORBIDDEN_SYMBOL_EXCEPTION_stderr
 #define FORBIDDEN_SYMBOL_EXCEPTION_stdin
 
@@ -117,7 +111,7 @@ GrimEngine::GrimEngine(OSystem *syst, uint32 gameFlags, GrimGameType gameType, C
 	_flipEnable = true;
 	int speed = g_registry->getInt("engine_speed");
 	if (speed <= 0 || speed > 100)
-		_speedLimitMs = 30;
+		_speedLimitMs = 1000 / 60;
 	else
 		_speedLimitMs = 1000 / speed;
 	char buf[20];
@@ -279,24 +273,6 @@ Common::Error GrimEngine::run() {
 	lua->registerLua();
 
 	lua->loadSystemScript();
-	if (!lua->supportedVersion()) {
-		const char *errorMessage = 0;
-		if (g_grim->getGameType() == GType_GRIM)
-			errorMessage = 	"Unsupported version of Grim Fandango.\n"
-							"Please download the original patch from\n"
-							"http://www.residualvm.org/downloads/\n"
-							"and put it the game data files directory.";
-		else if (g_grim->getGameType() == GType_MONKEY4)
-			errorMessage = 	"Unsupported version of Escape from Monkey Island.\n"
-							"Please download the original patch from\n"
-							"http://www.residualvm.org/downloads/\n"
-							"and put it the game data files directory.\n"
-							"Pay attention to download the correct version according to the game's language.";
-
-		GUI::displayErrorDialog(errorMessage);
-		return Common::kNoError;
-	}
-	//Make sure that the localizer is initialized after the version is checked
 	g_localizer = new Localizer();
 	lua->boot();
 
@@ -507,9 +483,6 @@ void GrimEngine::updateDisplayScene() {
 		// There are a bunch of these, especially in the tube-switcher room
 		_currSet->drawBitmaps(ObjectState::OBJSTATE_BACKGROUND);
 
-		// Underlay objects are just above the background
-		_currSet->drawBitmaps(ObjectState::OBJSTATE_UNDERLAY);
-
 		// State objects are drawn on top of other things, such as the flag
 		// on Manny's message tube
 		_currSet->drawBitmaps(ObjectState::OBJSTATE_STATE);
@@ -531,6 +504,11 @@ void GrimEngine::updateDisplayScene() {
 			else
 				g_driver->releaseMovieFrame();
 		}
+
+		// Underlay objects must be drawn on top of movies
+		// Otherwise the lighthouse door will always be open as the underlay for
+		// the closed door will be overdrawn by a movie used as background image.
+		_currSet->drawBitmaps(ObjectState::OBJSTATE_UNDERLAY);
 
 		// Draw Primitives
 		foreach (PrimitiveObject *p, PrimitiveObject::getPool()) {
@@ -561,6 +539,7 @@ void GrimEngine::updateDisplayScene() {
 		// including 3D objects such as Manny and the message tube
 		_currSet->drawBitmaps(ObjectState::OBJSTATE_OVERLAY);
 
+		g_driver->drawCleanBuffer();
 		drawPrimitives();
 	} else if (_mode == DrawMode) {
 		_doFlip = false;
@@ -1076,6 +1055,11 @@ void GrimEngine::invalidateActiveActorsList() {
 	_buildActiveActorsList = true;
 }
 
+void GrimEngine::immediatelyRemoveActor(Actor *actor) {
+	_activeActors.remove(actor);
+	_talkingActors.remove(actor);
+}
+
 void GrimEngine::buildActiveActorsList() {
 	if (!_buildActiveActorsList) {
 		return;
@@ -1084,7 +1068,16 @@ void GrimEngine::buildActiveActorsList() {
 	_activeActors.clear();
 	foreach (Actor *a, Actor::getPool()) {
 		if ((_mode == NormalMode && a->isInSet(_currSet->getName())) || a->isInOverworld()) {
-			_activeActors.push_back(a);
+			if (getGameType() == GType_MONKEY4) {
+				Common::List<Actor *>::iterator it = _activeActors.begin();
+				for (; it != _activeActors.end(); ++it) {
+					if (a->getSortOrder() >= (*it)->getSortOrder())
+						break;
+				}
+				_activeActors.insert(it, a);
+			} else {
+				_activeActors.push_back(a);
+			}
 		}
 	}
 	_buildActiveActorsList = false;
@@ -1106,16 +1099,11 @@ bool GrimEngine::areActorsTalking() const {
 	return talking;
 }
 
-void GrimEngine::setMovieSubtitle(TextObject *to)
-{
+void GrimEngine::setMovieSubtitle(TextObject *to) {
 	if (_movieSubtitle != to) {
 		delete _movieSubtitle;
 		_movieSubtitle = to;
 	}
-}
-
-const Common::String &GrimEngine::getSetName() const {
-	return _currSet->getName();
 }
 
 void GrimEngine::clearEventQueue() {

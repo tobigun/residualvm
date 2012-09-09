@@ -20,12 +20,6 @@
  *
  */
 
-#define FORBIDDEN_SYMBOL_EXCEPTION_chdir
-#define FORBIDDEN_SYMBOL_EXCEPTION_getcwd
-#define FORBIDDEN_SYMBOL_EXCEPTION_unlink
-#define FORBIDDEN_SYMBOL_EXCEPTION_getwd
-#define FORBIDDEN_SYMBOL_EXCEPTION_mkdir
-
 #include "common/endian.h"
 
 #include "engines/grim/emi/lua_v2.h"
@@ -261,6 +255,11 @@ void Lua_V2::GetCameraYaw() {
 	lua_pushnumber(0);
 }
 
+void Lua_V2::GetCameraRoll() {
+	warning("Lua_V2::GetCameraRoll: implement opcode, just returns 0");
+	lua_pushnumber(0);
+}
+
 // I suspect that pushtext and poptext stack the current text objects.
 void Lua_V2::PushText() {
 	warning("Lua_V2::PushText: implement opcode");
@@ -351,7 +350,6 @@ STUB_FUNC2(Lua_V2::LockChoreSet)
 STUB_FUNC2(Lua_V2::UnlockChoreSet)
 STUB_FUNC2(Lua_V2::GetSoundVolume)
 STUB_FUNC2(Lua_V2::SetSoundVolume)
-STUB_FUNC2(Lua_V2::PlaySoundFrom)
 STUB_FUNC2(Lua_V2::UpdateSoundPosition)
 STUB_FUNC2(Lua_V2::ImStateHasLooped)
 STUB_FUNC2(Lua_V2::YawCamera)
@@ -411,6 +409,7 @@ struct luaL_reg monkeyMainOpcodes[] = {
 	{ "IsChoreValid", LUA_OPCODE(Lua_V2, IsChoreValid) },
 	{ "IsChorePlaying", LUA_OPCODE(Lua_V2, IsChorePlaying) },
 	{ "IsChoreLooping", LUA_OPCODE(Lua_V2, IsChoreLooping) },
+	{ "SetChoreLooping", LUA_OPCODE(Lua_V2, SetChoreLooping) },
 	{ "StopActorChores", LUA_OPCODE(Lua_V2, StopActorChores) },
 	{ "PlayChore", LUA_OPCODE(Lua_V2, PlayChore) },
 	{ "StopChore", LUA_OPCODE(Lua_V2, StopChore) },

@@ -24,6 +24,7 @@
 #define GRIM_GFX_BASE_H
 
 #include "math/vector3d.h"
+#include "math/quat.h"
 
 #include "graphics/pixelformat.h"
 
@@ -102,7 +103,7 @@ public:
 	virtual uint getScreenHeight() { return _screenHeight; }
 
 	virtual void setupCamera(float fov, float nclip, float fclip, float roll) = 0;
-	virtual void positionCamera(const Math::Vector3d &pos, const Math::Vector3d &interest) = 0;
+	virtual void positionCamera(const Math::Vector3d &pos, const Math::Vector3d &interest, float roll) = 0;
 
 	virtual void clearScreen() = 0;
 
@@ -185,7 +186,7 @@ public:
 	virtual void destroyFont(Font *font) = 0;
 
 	virtual void createTextObject(TextObject *text) = 0;
-	virtual void drawTextObject(TextObject *text) = 0;
+	virtual void drawTextObject(const TextObject *text) = 0;
 	virtual void destroyTextObject(TextObject *text) = 0;
 
 	virtual Bitmap *getScreenshot(int w, int h) = 0;
@@ -213,9 +214,9 @@ public:
 	virtual void drawEmergString(int x, int y, const char *text, const Color &fgColor) = 0;
 	virtual void loadEmergFont() = 0;
 
-	virtual void drawRectangle(PrimitiveObject *primitive) = 0;
-	virtual void drawLine(PrimitiveObject *primitive) = 0;
-	virtual void drawPolygon(PrimitiveObject *primitive) = 0;
+	virtual void drawRectangle(const PrimitiveObject *primitive) = 0;
+	virtual void drawLine(const PrimitiveObject *primitive) = 0;
+	virtual void drawPolygon(const PrimitiveObject *primitive) = 0;
 
 	/**
 	 * Prepare a movie-frame for drawing
@@ -249,6 +250,7 @@ public:
 	virtual void selectScreenBuffer() {}
 	virtual void selectCleanBuffer() {}
 	virtual void clearCleanBuffer() {}
+	virtual void drawCleanBuffer() {}
 
 	virtual void createSpecialtyTextures() = 0;
 	virtual Material *getSpecialtyTexture(int n) { return &_specialty[n]; }
@@ -268,6 +270,8 @@ protected:
 	bool _shadowModeActive;
 	Graphics::PixelFormat _pixelFormat;
 	SpecialtyMaterial _specialty[8];
+	Math::Vector3d _currentPos;
+	Math::Quaternion _currentQuat;
 };
 
 // Factory-like functions:

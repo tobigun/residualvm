@@ -219,28 +219,24 @@ void GfxOpenGL::setupCamera(float fov, float nclip, float fclip, float roll) {
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 
-	glRotatef(roll, 0, 0, -1);
 }
 
-void GfxOpenGL::positionCamera(const Math::Vector3d &pos, const Math::Vector3d &interest) {
-	Math::Vector3d up_vec(0, 0, 1);
-
-	// EMI only: transform XYZ to YXZ
+void GfxOpenGL::positionCamera(const Math::Vector3d &pos, const Math::Vector3d &interest, float roll) {
 	if (g_grim->getGameType() == GType_MONKEY4) {
-		static const float EMI_MATRIX[] = {
-			0,1,0,0,
-			1,0,0,0,
-			0,0,1,0,
-			0,0,0,1
-		};
+		glScaled(1,1,-1);
 
-		glMultMatrixf(EMI_MATRIX);
+		_currentPos = pos;
+		_currentQuat = Math::Quaternion(interest.x(), interest.y(), interest.z(), roll);
+	} else {
+		Math::Vector3d up_vec(0, 0, 1);
+
+		glRotatef(roll, 0, 0, -1);
+
+		if (pos.x() == interest.x() && pos.y() == interest.y())
+			up_vec = Math::Vector3d(0, 1, 0);
+
+		gluLookAt(pos.x(), pos.y(), pos.z(), interest.x(), interest.y(), interest.z(), up_vec.x(), up_vec.y(), up_vec.z());
 	}
-
-	if (pos.x() == interest.x() && pos.y() == interest.y())
-		up_vec = Math::Vector3d(0, 1, 0);
-
-	gluLookAt(pos.x(), pos.y(), pos.z(), interest.x(), interest.y(), interest.z(), up_vec.x(), up_vec.y(), up_vec.z());
 }
 
 void GfxOpenGL::clearScreen() {
@@ -394,7 +390,7 @@ void GfxOpenGL::startActorDraw(const Math::Vector3d &pos, float scale, const Mat
 		glDisable(GL_LIGHTING);
 		glDisable(GL_TEXTURE_2D);
 // 		glColor3f(0.0f, 1.0f, 0.0f);
-		glColor3f(_shadowColorR / 255.0f, _shadowColorG / 255.0f, _shadowColorB / 255.0f);
+		glColor3ub(_shadowColorR, _shadowColorG, _shadowColorB);
 		glShadowProjection(_currentShadowArray->pos, shadowSector->getVertices()[0], shadowSector->getNormal(), _currentShadowArray->dontNegate);
 	}
 
@@ -417,13 +413,17 @@ void GfxOpenGL::startActorDraw(const Math::Vector3d &pos, float scale, const Mat
 		glRotatef(180, 0, 0, -1);
 		glTranslatef(pos.x(), pos.y(), pos.z());
 	} else {
-		glTranslatef(pos.x(), pos.y(), pos.z());
+		Math::Vector3d relPos = (pos - _currentPos);
+
+		Math::Matrix4 worldRot = _currentQuat.toMatrix();
+		worldRot.inverseRotate(&relPos);
+		glTranslatef(relPos.x(), relPos.y(), relPos.z());
+		glMultMatrixf(worldRot.getData());
+
 		glScalef(scale, scale, scale);
-		// EMI uses Y axis as down-up, so we need to rotate differently.
 		if (g_grim->getGameType() == GType_MONKEY4) {
-			glRotatef(yaw.getDegrees(), 0, -1, 0);
-			glRotatef(pitch.getDegrees(), 1, 0, 0);
-			glRotatef(roll.getDegrees(), 0, 0, 1);
+			Math::Matrix4 charRot = Math::Quaternion::fromEuler(yaw, pitch, roll).toMatrix();
+			glMultMatrixf(charRot.getData());
 		} else {
 			glRotatef(yaw.getDegrees(), 0, 0, 1);
 			glRotatef(pitch.getDegrees(), 1, 0, 0);
@@ -1002,7 +1002,7 @@ void GfxOpenGL::destroyFont(Font *font) {
 void GfxOpenGL::createTextObject(TextObject *text) {
 }
 
-void GfxOpenGL::drawTextObject(TextObject *text) {
+void GfxOpenGL::drawTextObject(const TextObject *text) {
 	if (!text)
 		return;
 
@@ -1022,10 +1022,10 @@ void GfxOpenGL::drawTextObject(TextObject *text) {
 	glDepthMask(GL_FALSE);
 
 	const Color &color = text->getFGColor();
-	Font *font = text->getFont();
+	const Font *font = text->getFont();
 
-	glColor3f(color.getRed() / 255.f, color.getGreen() / 255.f, color.getBlue() / 255.f);
-	FontUserData *userData = (FontUserData *)font->getUserData();
+	glColor3ub(color.getRed(), color.getGreen(), color.getBlue());
+	const FontUserData *userData = (const FontUserData *)font->getUserData();
 	if (!userData)
 		error("Could not get font userdata");
 	float size = userData->size * _scaleW;
@@ -1506,7 +1506,7 @@ void GfxOpenGL::irisAroundRegion(int x1, int y1, int x2, int y2) {
 	glDepthMask(GL_TRUE);
 }
 
-void GfxOpenGL::drawRectangle(PrimitiveObject *primitive) {
+void GfxOpenGL::drawRectangle(const PrimitiveObject *primitive) {
 	float x1 = primitive->getP1().x * _scaleW;
 	float y1 = primitive->getP1().y * _scaleH;
 	float x2 = primitive->getP2().x * _scaleW;
@@ -1570,7 +1570,7 @@ void GfxOpenGL::drawRectangle(PrimitiveObject *primitive) {
 	glEnable(GL_LIGHTING);
 }
 
-void GfxOpenGL::drawLine(PrimitiveObject *primitive) {
+void GfxOpenGL::drawLine(const PrimitiveObject *primitive) {
 	float x1 = primitive->getP1().x * _scaleW;
 	float y1 = primitive->getP1().y * _scaleH;
 	float x2 = primitive->getP2().x * _scaleW;
@@ -1588,7 +1588,7 @@ void GfxOpenGL::drawLine(PrimitiveObject *primitive) {
 	glDisable(GL_DEPTH_TEST);
 	glDepthMask(GL_FALSE);
 
-	glColor3f(color.getRed() / 255.0f, color.getGreen() / 255.0f, color.getBlue() / 255.0f);
+	glColor3ub(color.getRed(), color.getGreen(), color.getBlue());
 
 	glLineWidth(_scaleW);
 
@@ -1604,7 +1604,7 @@ void GfxOpenGL::drawLine(PrimitiveObject *primitive) {
 	glEnable(GL_LIGHTING);
 }
 
-void GfxOpenGL::drawPolygon(PrimitiveObject *primitive) {
+void GfxOpenGL::drawPolygon(const PrimitiveObject *primitive) {
 	float x1 = primitive->getP1().x * _scaleW;
 	float y1 = primitive->getP1().y * _scaleH;
 	float x2 = primitive->getP2().x * _scaleW;
@@ -1626,7 +1626,7 @@ void GfxOpenGL::drawPolygon(PrimitiveObject *primitive) {
 	glDisable(GL_DEPTH_TEST);
 	glDepthMask(GL_FALSE);
 
-	glColor3f(color.getRed() / 255.0f, color.getGreen() / 255.0f, color.getBlue() / 255.0f);
+	glColor3ub(color.getRed(), color.getGreen(), color.getBlue());
 
 	glBegin(GL_LINES);
 	glVertex2f(x1, y1);

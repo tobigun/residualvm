@@ -85,12 +85,7 @@ public:
 		// Iterate over all registered (static) plugins and load them.
 
 		// Engine plugins
-		#if PLUGIN_ENABLED_STATIC(GRIM)
-		LINK_PLUGIN(GRIM)
-		#endif
-		#if PLUGIN_ENABLED_STATIC(MYST3)
-		LINK_PLUGIN(MYST3)
-		#endif
+		#include "engines/plugins_table.h"
 
 		// Music plugins
 		// TODO: Use defines to disable or enable each MIDI driver as a
@@ -105,6 +100,9 @@ public:
 		#endif
 		#if defined(USE_SEQ_MIDI)
 		LINK_PLUGIN(SEQ)
+		#endif
+		#if defined(USE_SNDIO)
+		LINK_PLUGIN(SNDIO)
 		#endif
 		#if defined(__MINT__)
 		LINK_PLUGIN(STMIDI)

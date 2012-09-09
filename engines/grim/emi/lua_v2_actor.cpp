@@ -20,16 +20,11 @@
  *
  */
 
-#define FORBIDDEN_SYMBOL_EXCEPTION_chdir
-#define FORBIDDEN_SYMBOL_EXCEPTION_getcwd
-#define FORBIDDEN_SYMBOL_EXCEPTION_unlink
-#define FORBIDDEN_SYMBOL_EXCEPTION_getwd
-#define FORBIDDEN_SYMBOL_EXCEPTION_mkdir
-
 #include "engines/grim/emi/lua_v2.h"
 #include "engines/grim/lua/lua.h"
 
 #include "engines/grim/actor.h"
+#include "engines/grim/grim.h"
 #include "engines/grim/costume.h"
 #include "engines/grim/costume/chore.h"
 
@@ -115,6 +110,8 @@ void Lua_V2::UnloadActor() {
 
 	// This should be safe.
 	delete actor;
+	g_grim->invalidateActiveActorsList();
+	g_grim->immediatelyRemoveActor(actor);
 }
 
 void Lua_V2::SetActorWalkRate() {
@@ -220,6 +217,20 @@ void Lua_V2::IsChoreLooping() {
 	}
 }
 
+void Lua_V2::SetChoreLooping() {
+	lua_Object choreObj = lua_getparam(1);
+	if (!lua_isuserdata(choreObj) || lua_tag(choreObj) != MKTAG('C','H','O','R'))
+		return;
+
+	int chore = lua_getuserdata(choreObj);
+	Chore *c = PoolChore::getPool().getObject(chore);
+
+	if (c) {
+		c->setLooping(false);
+	}
+	lua_pushnil();
+}
+
 void Lua_V2::StopChore() {
 	lua_Object choreObj = lua_getparam(1);
 	lua_Object timeObj = lua_getparam(2);
@@ -257,23 +268,27 @@ void Lua_V2::AdvanceChore() {
 
 void Lua_V2::SetActorSortOrder() {
 	lua_Object actorObj = lua_getparam(1);
-	lua_Object modeObj = lua_getparam(2);
+	lua_Object orderObj = lua_getparam(2);
 
 	if (!lua_isuserdata(actorObj) || lua_tag(actorObj) != MKTAG('A','C','T','R'))
 		return;
 
-	if (!lua_isnumber(modeObj))
+	if (!lua_isnumber(orderObj))
 		return;
 
 	Actor *actor = getactor(actorObj);
-	int mode = (int)lua_getnumber(modeObj);
-	warning("Lua_V2::SetActorSortOrder, actor: %s, mode: %d", actor->getName().c_str(), mode);
-	// FIXME: actor->func(mode);
+	int order = (int)lua_getnumber(orderObj);
+	actor->setSortOrder(order);
 }
 
 void Lua_V2::GetActorSortOrder() {
-	warning("Lua_V2::GetActorSortOrder, implement opcode");
-	lua_pushnumber(0);
+	lua_Object actorObj = lua_getparam(1);
+
+	if (!lua_isuserdata(actorObj) || lua_tag(actorObj) != MKTAG('A','C','T','R'))
+		return;
+
+	Actor *actor = getactor(actorObj);
+	lua_pushnumber(actor->getSortOrder());
 }
 
 void Lua_V2::ActorActivateShadow() {
@@ -527,8 +542,8 @@ void Lua_V2::PlayActorChore() {
 	lua_Object actorObj = lua_getparam(1);
 	lua_Object choreObj = lua_getparam(2);
 	lua_Object costumeObj = lua_getparam(3);
-//	lua_Object modeObj = lua_getparam(4);
-//	lua_Object paramObj = lua_getparam(5);
+	lua_Object modeObj = lua_getparam(4);
+	lua_Object paramObj = lua_getparam(5);
 
 	if (!lua_isuserdata(actorObj) || lua_tag(actorObj) != MKTAG('A','C','T','R'))
 		return;
@@ -538,7 +553,7 @@ void Lua_V2::PlayActorChore() {
 	if (!lua_isstring(choreObj) || !lua_isstring(costumeObj))
 		lua_pushnil();
 
-/*	bool mode = false;
+	bool mode = false;
 	float param = 0.0;
 
 	if (!lua_isnil(modeObj)) {
@@ -547,7 +562,7 @@ void Lua_V2::PlayActorChore() {
 		if (!lua_isnil(paramObj))
 			if (lua_isnumber(paramObj))
 				param = lua_getnumber(paramObj);
-	}*/
+	}
 
 	const char *choreName = lua_getstring(choreObj);
 	const char *costumeName = lua_getstring(costumeObj);
@@ -559,7 +574,11 @@ void Lua_V2::PlayActorChore() {
 	}
 
 	PoolChore *chore = (PoolChore *)costume->getChore(choreName);
-	costume->playChore(choreName);
+	if (mode) {
+		costume->playChoreLooping(choreName);
+	} else {
+		costume->playChore(choreName);
+	}
 	if (chore) {
 		lua_pushusertag(chore->getId(), MKTAG('C','H','O','R'));
 	} else {
@@ -610,8 +629,8 @@ void Lua_V2::SetActorLighting() {
 			//FIXME actor->
 			warning("Lua_V2::SetActorLighting: case param 2(LIGHT_NORMDYN), actor: %s", actor->getName().c_str());
 		} else {
-			//FIXME actor->
-			warning("Lua_V2::SetActorLighting: case param %d(LIGHT_NONE), actor: %s", lightMode, actor->getName().c_str());
+			actor->setGlobalAlpha(0.0f);
+			actor->setAlphaMode(Grim::Actor::AlphaReplace);
 		}
 	} else {
 		//FIXME actor->
@@ -763,6 +782,38 @@ void Lua_V2::DetachActor() {
 
 	warning("Lua_V2::DetachActor: detaching %s from parent actor", attached->getName().c_str());
 	attached->detach();
+}
+
+void Lua_V2::WalkActorToAvoiding() {
+	lua_Object actorObj = lua_getparam(1);
+	lua_Object actor2Obj = lua_getparam(2);
+	lua_Object xObj = lua_getparam(3);
+	lua_Object yObj = lua_getparam(4);
+	lua_Object zObj = lua_getparam(5);
+
+	if (!lua_isuserdata(actorObj) || lua_tag(actorObj) != MKTAG('A','C','T','R'))
+		return;
+
+	if (!lua_isuserdata(actor2Obj) || lua_tag(actor2Obj) != MKTAG('A','C','T','R'))
+		return;
+
+	Math::Vector3d destVec;
+	Actor *actor = getactor(actorObj);
+	if (!lua_isnumber(xObj)) {
+		if (!lua_isuserdata(xObj) || lua_tag(xObj) != MKTAG('A','C','T','R'))
+			return;
+		Actor *destActor = getactor(xObj);
+		destVec = destActor->getPos();
+	} else {
+		float x = lua_getnumber(xObj);
+		float y = lua_getnumber(yObj);
+		float z = lua_getnumber(zObj);
+		destVec.set(x, y, z);
+	}
+
+	// TODO: Make this actually avoid the second actor
+
+	actor->walkTo(destVec);
 }
 
 } // end of namespace Grim

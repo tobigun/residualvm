@@ -20,17 +20,12 @@
  *
  */
 
-#define FORBIDDEN_SYMBOL_EXCEPTION_chdir
-#define FORBIDDEN_SYMBOL_EXCEPTION_getcwd
-#define FORBIDDEN_SYMBOL_EXCEPTION_unlink
-#define FORBIDDEN_SYMBOL_EXCEPTION_getwd
-#define FORBIDDEN_SYMBOL_EXCEPTION_mkdir
-
 #include "audio/mixer.h"
 #include "audio/audiostream.h"
 #include "common/system.h"
 
 #include "engines/grim/emi/sound/aifftrack.h"
+#include "engines/grim/emi/sound/scxtrack.h"
 #include "engines/grim/emi/lua_v2.h"
 #include "engines/grim/lua/lua.h"
 
@@ -264,14 +259,41 @@ void Lua_V2::PlaySound() {
 	const char *str = lua_getstring(strObj);
 	Common::String filename = str;
 
+	SoundTrack *track;
+
 	if (g_grim->getGameFlags() != ADGF_DEMO) {
-		filename += ".aif";
+		if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+			filename += ".scx";
+		} else {
+			filename += ".aif";
+		}
 	}
 
-	AIFFTrack *track = new AIFFTrack(Audio::Mixer::kSFXSoundType);
 	Common::SeekableReadStream *stream = g_resourceloader->openNewStreamFile(filename);
+	if (!stream) {
+		warning("Lua_V2::PlaySound: Could not find sound '%s'", filename.c_str());
+		return;
+	}
+
+	if (g_grim->getGamePlatform() != Common::kPlatformPS2) {
+		track = new AIFFTrack(Audio::Mixer::kSFXSoundType);
+	} else {
+		track = new SCXTrack(Audio::Mixer::kSFXSoundType);
+	}
+
 	track->openSound(filename, stream);
 	track->play();
+}
+
+// FIXME: implement sound positioning
+void Lua_V2::PlaySoundFrom() {
+//  lua_Object strObj = lua_getparam(1);
+//  lua_Object volObj = lua_getparam(2);
+//  lua_Object posxObj = lua_getparam(3);
+//  lua_Object posyObj = lua_getparam(4);
+//  lua_Object posZObj = lua_getparam(5);
+
+	return PlaySound();
 }
 
 void Lua_V2::ImSetMusicVol() {

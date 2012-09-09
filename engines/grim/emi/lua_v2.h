@@ -100,6 +100,7 @@ protected:
 	DECLARE_LUA_OPCODE(EnableActorPuck);
 	DECLARE_LUA_OPCODE(GetActorSortOrder);
 	DECLARE_LUA_OPCODE(IsChoreLooping);
+	DECLARE_LUA_OPCODE(SetChoreLooping);
 	DECLARE_LUA_OPCODE(PlayChore);
 	DECLARE_LUA_OPCODE(PauseChore);
 	DECLARE_LUA_OPCODE(CompleteChore);
@@ -126,6 +127,7 @@ protected:
 	DECLARE_LUA_OPCODE(GetCameraYaw);
 	DECLARE_LUA_OPCODE(YawCamera);
 	DECLARE_LUA_OPCODE(GetCameraPitch);
+	DECLARE_LUA_OPCODE(GetCameraRoll);
 	DECLARE_LUA_OPCODE(PitchCamera);
 	DECLARE_LUA_OPCODE(RollCamera);
 	DECLARE_LUA_OPCODE(NewLayer);
@@ -161,6 +163,7 @@ protected:
 	DECLARE_LUA_OPCODE(SetActorTalkChore);
 	DECLARE_LUA_OPCODE(SetActorMumblechore);
 	DECLARE_LUA_OPCODE(GammaEnabled);
+	DECLARE_LUA_OPCODE(WalkActorToAvoiding);
 };
 
 } // end of namespace Grim

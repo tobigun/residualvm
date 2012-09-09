@@ -476,6 +476,9 @@ public:
 	void setGlobalAlpha(float alpha) { _globalAlpha = alpha; }
 	void setAlphaMode(AlphaMode mode) { _alphaMode = mode; }
 
+	int getSortOrder() const { return _sortOrder; }
+	void setSortOrder(const int order) { _sortOrder = order; }
+
 private:
 	void costumeMarkerCallback(int marker);
 	void collisionHandlerCallback(Actor *other) const;
@@ -614,7 +617,7 @@ private:
 
 	bool _inOverworld;
 
-	friend class GrimEngine;
+	int _sortOrder;
 };
 
 } // end of namespace Grim

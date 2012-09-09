@@ -20,13 +20,6 @@
  *
  */
 
-#define FORBIDDEN_SYMBOL_EXCEPTION_printf
-#define FORBIDDEN_SYMBOL_EXCEPTION_chdir
-#define FORBIDDEN_SYMBOL_EXCEPTION_getcwd
-#define FORBIDDEN_SYMBOL_EXCEPTION_getwd
-#define FORBIDDEN_SYMBOL_EXCEPTION_mkdir
-#define FORBIDDEN_SYMBOL_EXCEPTION_unlink
-
 #include "math/line3d.h"
 #include "math/rect2d.h"
 
@@ -91,6 +84,7 @@ Actor::Actor(const Common::String &actorName) :
 	_puckOrient = false;
 	_talking = false;
 	_inOverworld = false;
+	_sortOrder = 0;
 
 	for (int i = 0; i < MAX_SHADOWS; i++) {
 		_shadowArray[i].active = false;
@@ -116,6 +110,8 @@ Actor::Actor() {
 
 	_alphaMode = AlphaOff;
 	_globalAlpha = 1.f;
+
+	_sortOrder = 0;
 
 	for (int i = 0; i < MAX_SHADOWS; i++) {
 		_shadowArray[i].active = false;
@@ -673,6 +669,14 @@ void Actor::walkForward() {
 			// Check for an adjacent sector which can continue
 			// the path
 			currSector = g_grim->getCurrSet()->findPointSector(ei.exitPoint + (float)0.0001 * puckVec, Sector::WalkType);
+
+			// EMI: some sectors are significantly higher/lower than others.
+			if (currSector && g_grim->getGameType() == GType_MONKEY4) {
+				float planeDist = currSector->distanceToPoint(_pos);
+				if (fabs(planeDist) < 1.f)
+					_pos -= planeDist * currSector->getNormal();
+			}
+
 			if (currSector == prevSector || currSector == startSector)
 				break;
 		}
@@ -849,11 +853,13 @@ void Actor::sayLine(const char *msgId, bool background) {
 
 	Common::String soundName = id;
 
-	if (g_grim->getGameType() == GType_GRIM)
+	if (g_grim->getGameType() == GType_GRIM) {
 		soundName += ".wav";
-	else
+	} else if (g_grim->getGameType() == GType_MONKEY4 && g_grim->getGamePlatform() == Common::kPlatformPS2) {
+		soundName += ".scx";
+	} else {
 		soundName += ".wVC";
-
+	}
 	if (_talkSoundName == soundName)
 		return;
 
@@ -1254,7 +1260,7 @@ bool Actor::updateTalk(uint frameTime) {
 		if (m == GrimEngine::TextOnly && !textObject) {
 			shutUp();
 			return false;
-		} else if (m != GrimEngine::TextOnly && (strlen(_talkSoundName.c_str()) == 0 || !g_sound->getSoundStatus(_talkSoundName.c_str()))) {
+		} else if (m != GrimEngine::TextOnly && (_talkSoundName.empty() || !g_sound->getSoundStatus(_talkSoundName.c_str()))) {
 			_talkDelay -= frameTime;
 			if (_talkDelay <= 0) {
 				_talkDelay = 0;
@@ -1679,7 +1685,7 @@ Math::Vector3d Actor::getWorldPos() const {
 	if (! isAttached())
 		return getPos();
 
-	EMICostume * cost = dynamic_cast<EMICostume *>(_attachedActor->getCurrentCostume());
+	EMICostume * cost = static_cast<EMICostume *>(_attachedActor->getCurrentCostume());
 	assert(cost != NULL);
 
 	Math::Matrix4 attachedToWorld;
@@ -1706,7 +1712,7 @@ void Actor::attachToActor(Actor *other, const char *joint) {
 	if (_attachedActor != NULL)
 		detach();
 
-	EMICostume * cost = dynamic_cast<EMICostume *>(other->getCurrentCostume());
+	EMICostume * cost = static_cast<EMICostume *>(other->getCurrentCostume());
 	assert(cost != NULL);
 
 	Common::String jointStr = joint ? joint : "";

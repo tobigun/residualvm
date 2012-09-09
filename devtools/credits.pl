@@ -69,6 +69,7 @@ sub html_entities_to_ascii {
 	# &aring;   -> aa
 	# &amp;     -> &
 	# &#322;    -> l
+	# &#347;    -> s
 	# &Scaron;  -> S
 	$text =~ s/&aacute;/a/g;
 	$text =~ s/&eacute;/e/g;
@@ -76,6 +77,7 @@ sub html_entities_to_ascii {
 	$text =~ s/&oacute;/o/g;
 	$text =~ s/&oslash;/o/g;
 	$text =~ s/&#322;/l/g;
+	$text =~ s/&#347;/s/g;
 	$text =~ s/&Scaron;/S/g;
 	$text =~ s/&aring;/aa/g;
 
@@ -101,6 +103,7 @@ sub html_entities_to_cpp {
 	$text =~ s/&oacute;/\\363/g;
 	$text =~ s/&oslash;/\\370/g;
 	$text =~ s/&#322;/l/g;
+	$text =~ s/&#347;/s/g;
 	$text =~ s/&Scaron;/S/g;
 	$text =~ s/&aring;/\\345/g;
 
@@ -473,7 +476,7 @@ begin_credits("Credits");
 		add_person("Thomas Allen", "olldray", "Various engine code fixes and improvements");
 		add_person("Torbj&ouml;rn Andersson", "eriktorbjorn", "Various code fixes");
 		add_person("Ori Avtalion", "salty-horse", "Lipsync, LAF support, various code fixes");
-		add_person("Robert Biro", "DarthJDG", "Fixes to antiliasing");
+		add_person("Robert Biro", "DarthJDG", "Antialiasing support");
 		add_person("Bastien Bouclet", "bgK", "Various fixes to engine");
 		add_person("Marcus Comstedt", "marcus_c", "Initial Dreamcast port");
 		add_person("Andrea Corna", "Yak Bizzarro", "Patcher module, various engine improvements");
@@ -497,7 +500,7 @@ begin_credits("Credits");
 		add_person("Julien Templier", "Littleboy", "create_project tool");
 		add_person("Pino Toscano", "pinotree", "Debian GNU/Linux package files");
 		add_person("Lionel Ulmer", "bbrox", "OpenGL optimisations");
-		add_person("Joni V&auml;h&auml;m&auml;ki", "Akz", "A lot engine improvements and fixes");
+		add_person("Joni V&auml;h&auml;m&auml;ki", "Akz", "A lot of engine improvements and fixes");
 		add_person("", "JenniBee", "Compilation fixes");
 	    end_section();
 
@@ -510,7 +513,7 @@ begin_credits("Credits");
 
     begin_section("ScummVM code");
 	  add_paragraph(
-	  "ResidualVM use a lot of ScummVM code. ".
+	  "ResidualVM uses a lot of ScummVM code. ".
 	  "For a list of authors look into COPYRIGHT file. ");
     end_section();
 
