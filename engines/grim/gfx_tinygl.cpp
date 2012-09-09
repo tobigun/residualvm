@@ -247,7 +247,8 @@ byte *GfxTinyGL::setupScreen(int screenW, int screenH, bool fullscreen) {
 	_screenHeight = screenH;
 	_isFullscreen = g_system->getFeatureState(OSystem::kFeatureFullscreenMode);
 
-	g_system->showMouse(!fullscreen);
+	// with Android ICS this will switch on mouse_mode and hence manny cannot be moved
+	//g_system->showMouse(!fullscreen);
 
 	g_system->setWindowCaption("ResidualVM: Software 3D Renderer");
 
