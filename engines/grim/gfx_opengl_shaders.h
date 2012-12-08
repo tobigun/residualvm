@@ -201,6 +201,15 @@ protected:
 private:
 	float _alpha;
 	GLuint _backgroundProgram;
+	GLuint _smushProgram;
+	GLuint _smushVAO, _smushVBO;
+
+	int _smushWidth;
+	int _smushHeight;
+	uint32 _smushNumTex;
+	GLuint *_smushTexIds;
+
+	void setupTexturedQuad();
 };
 }
 #endif
