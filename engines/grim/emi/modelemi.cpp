@@ -238,6 +238,9 @@ void EMIModel::prepareForRender() {
 		int animIndex = _vertexBoneInfo[_vertexBone[i]];
 		_skeleton->_joints[animIndex]._finalMatrix.transform(_drawVertices + i, true);
 	}
+#ifdef USE_OPENGL_SHADERS
+	_dirtySkeleton = true;
+#endif
 }
 
 void EMIModel::prepareTextures() {
@@ -287,6 +290,7 @@ EMIModel::EMIModel(const Common::String &filename, Common::SeekableReadStream *d
 	_setType = 0;
 
 	loadMesh(data);
+	g_driver->createEMIModel(this);
 }
 
 EMIModel::~EMIModel() {
