@@ -192,7 +192,9 @@ public:
 	void renderZBitmaps(bool render);
 
 	virtual void createSpecialtyTextures();
+
 	virtual void createEMIModel(EMIModel *model);
+	virtual void createModel(Mesh *mesh);
 
 protected:
 	void setupShaders();
