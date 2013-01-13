@@ -4,19 +4,19 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
 
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
 
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  */
 
@@ -52,6 +52,8 @@ public:
 	BlitImage() {
 		_lines = NULL;
 		_last = NULL;
+		_width = 0;
+		_height = 0;
 	}
 	~BlitImage() {
 		Line *temp = _lines;
@@ -63,6 +65,8 @@ public:
 	}
 	void create(const Graphics::PixelBuffer &buf, uint32 transparency, int x, int y, int width, int height) {
 		Graphics::PixelBuffer srcBuf = buf;
+		_width = width;
+		_height = height;
 		// A line of pixels can not wrap more that one line of the image, since it would break
 		// blitting of bitmaps with a non-zero x position.
 		for (int l = 0; l < height; l++) {
@@ -119,6 +123,7 @@ public:
 	};
 	Line *_lines;
 	Line *_last;
+	int _width, _height;
 };
 
 GfxBase *CreateGfxTinyGL() {
@@ -234,6 +239,7 @@ GfxTinyGL::GfxTinyGL() {
 
 GfxTinyGL::~GfxTinyGL() {
 	if (_zb) {
+		delBuffer(1);
 		TinyGL::glClose();
 		ZB_close(_zb);
 	}
@@ -245,6 +251,9 @@ byte *GfxTinyGL::setupScreen(int screenW, int screenH, bool fullscreen) {
 
 	_screenWidth = screenW;
 	_screenHeight = screenH;
+	_scaleW = _screenWidth / (float)_gameWidth;
+	_scaleH = _screenHeight / (float)_gameHeight;
+
 	_isFullscreen = g_system->getFeatureState(OSystem::kFeatureFullscreenMode);
 
 	// with Android ICS this will switch on mouse_mode and hence manny cannot be moved
@@ -264,6 +273,11 @@ byte *GfxTinyGL::setupScreen(int screenW, int screenH, bool fullscreen) {
 
 	TGLfloat ambientSource[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 	tglLightModelfv(TGL_LIGHT_MODEL_AMBIENT, ambientSource);
+
+	// we now generate a buffer (id 1), which we will use as a backing buffer, where the actors' clean buffers
+	// will blit to. everu frame this will be blitted to screen, but the actors' buffers will be blitted to
+	// this only when they change.
+	genBuffer();
 
 	return buffer;
 }
@@ -311,20 +325,54 @@ void GfxTinyGL::flipBuffer() {
 	g_system->updateScreen();
 }
 
-void GfxTinyGL::selectScreenBuffer() {
-	TinyGL::ZB_selectScreenBuffer(_zb);
+int GfxTinyGL::genBuffer() {
+	static int id = 0;
+
+	TinyGL::Buffer *buf = ZB_genOffscreenBuffer(_zb);
+	_buffers[++id] = buf;
+
+	return id;
 }
 
-void GfxTinyGL::selectCleanBuffer() {
-	TinyGL::ZB_selectOffscreenBuffer(_zb);
+void GfxTinyGL::delBuffer(int id) {
+	ZB_delOffscreenBuffer(_zb, _buffers[id]);
+	_buffers.erase(id);
 }
 
-void GfxTinyGL::clearCleanBuffer() {
-	TinyGL::ZB_clearOffscreenBuffer(_zb);
+void GfxTinyGL::selectBuffer(int id) {
+	if (id == 0) {
+		ZB_selectOffscreenBuffer(_zb, NULL);
+	} else {
+		ZB_selectOffscreenBuffer(_zb, _buffers[id]);
+	}
 }
 
-void GfxTinyGL::drawCleanBuffer() {
-	TinyGL::ZB_blitOffscreenBuffer(_zb);
+void GfxTinyGL::clearBuffer(int id) {
+	TinyGL::Buffer *buf = _buffers[id];
+	ZB_clearOffscreenBuffer(_zb, buf);
+}
+
+void GfxTinyGL::drawBuffers() {
+	selectBuffer(1);
+	Common::HashMap<int, TinyGL::Buffer *>::iterator i = _buffers.begin();
+	for (++i; i != _buffers.end(); ++i) {
+		TinyGL::Buffer *buf = i->_value;
+		ZB_blitOffscreenBuffer(_zb, buf);
+		//this is not necessary, but it prevents the buffers to be blitted every frame, if it is not needed
+		buf->used = false;
+	}
+
+	selectBuffer(0);
+	ZB_blitOffscreenBuffer(_zb, _buffers[1]);
+}
+
+void GfxTinyGL::refreshBuffers() {
+	clearBuffer(1);
+	Common::HashMap<int, TinyGL::Buffer *>::iterator i = _buffers.begin();
+	for (++i; i != _buffers.end(); ++i) {
+		TinyGL::Buffer *buf = i->_value;
+		buf->used = true;
+	}
 }
 
 bool GfxTinyGL::isHardwareAccelerated() {
@@ -466,9 +514,8 @@ void GfxTinyGL::getBoundingBoxPos(const Mesh *model, int *x1, int *y1, int *x2, 
 	}*/
 }
 
-void GfxTinyGL::startActorDraw(const Math::Vector3d &pos, float scale, const Math::Angle &yaw,
-							   const Math::Angle &pitch, const Math::Angle &roll, const bool inOverworld,
-								 const float alpha) {
+void GfxTinyGL::startActorDraw(const Math::Vector3d &pos, float scale, const Math::Quaternion &quat,
+	                             const bool inOverworld, const float alpha) {
 	tglEnable(TGL_TEXTURE_2D);
 	tglMatrixMode(TGL_PROJECTION);
 	tglPushMatrix();
@@ -515,14 +562,7 @@ void GfxTinyGL::startActorDraw(const Math::Vector3d &pos, float scale, const Mat
 		tglMultMatrixf(worldRot.getData());
 
 		tglScalef(scale, scale, scale);
-		if (g_grim->getGameType() == GType_MONKEY4) {
-			Math::Matrix4 charRot = Math::Quaternion::fromEuler(yaw, pitch, roll).toMatrix();
-			tglMultMatrixf(charRot.getData());
-		} else {
-			tglRotatef(yaw.getDegrees(), 0, 0, 1);
-			tglRotatef(pitch.getDegrees(), 1, 0, 0);
-			tglRotatef(roll.getDegrees(), 0, 1, 0);
-		}
+		tglMultMatrixf(quat.toMatrix().getData());
 	}
 }
 
@@ -627,12 +667,13 @@ void GfxTinyGL::drawEMIModelFace(const EMIModel* model, const EMIMeshFace* face)
 		tglDisable(TGL_TEXTURE_2D);
 	tglBegin(TGL_TRIANGLES);
 
+	float dim = 1.0f - _dimLevel;
 	for (uint j = 0; j < face->_faceLength * 3; j++) {
 		int index = indices[j];
 		if (face->_hasTexture) {
 			tglTexCoord2f(model->_texVerts[index].getX(), model->_texVerts[index].getY());
 		}
-		tglColor4ub(model->_colorMap[index].r, model->_colorMap[index].g, model->_colorMap[index].b, (int)_alpha);
+		tglColor4ub((byte)(model->_colorMap[index].r * dim), (byte)(model->_colorMap[index].g * dim), (byte)(model->_colorMap[index].b * dim), (int)_alpha);
 
 		Math::Vector3d normal = model->_normals[index];
 		Math::Vector3d vertex = model->_drawVertices[index];
@@ -685,16 +726,37 @@ void GfxTinyGL::drawSprite(const Sprite *sprite) {
 
 	tglDisable(TGL_LIGHTING);
 
-	tglBegin(TGL_POLYGON);
-	tglTexCoord2f(0.0f, 0.0f);
-	tglVertex3f(sprite->_width / 2, sprite->_height, 0.0f);
-	tglTexCoord2f(0.0f, 1.0f);
-	tglVertex3f(sprite->_width / 2, 0.0f, 0.0f);
-	tglTexCoord2f(1.0f, 1.0f);
-	tglVertex3f(-sprite->_width / 2, 0.0f, 0.0f);
-	tglTexCoord2f(1.0f, 0.0f);
-	tglVertex3f(-sprite->_width / 2, sprite->_height, 0.0f);
-	tglEnd();
+	if (g_grim->getGameType() == GType_MONKEY4) {
+		float halfWidth = (sprite->_width / 2) * _scaleW;
+		float halfHeight = (sprite->_height / 2) * _scaleH;
+
+		tglBegin(TGL_POLYGON);
+		tglTexCoord2f(0.0f, 1.0f);
+		tglVertex3f(-halfWidth, -halfHeight, 0.0f);
+		tglTexCoord2f(0.0f, 0.0f);
+		tglVertex3f(-halfWidth, +halfHeight, 0.0f);
+		tglTexCoord2f(1.0f, 0.0f);
+		tglVertex3f(+halfWidth, +halfHeight, 0.0f);
+		tglTexCoord2f(1.0f, 1.0f);
+		tglVertex3f(+halfWidth, -halfHeight, 0.0f);
+		tglEnd();
+	} else {
+		// In Grim, the bottom edge of the sprite is at y=0 and
+		// the texture is flipped along the X-axis.
+		float halfWidth = (sprite->_width / 2) * _scaleW;
+		float height = sprite->_height * _scaleH;
+
+		tglBegin(TGL_POLYGON);
+		tglTexCoord2f(0.0f, 1.0f);
+		tglVertex3f(+halfWidth, 0.0f, 0.0f);
+		tglTexCoord2f(0.0f, 0.0f);
+		tglVertex3f(+halfWidth, +height, 0.0f);
+		tglTexCoord2f(1.0f, 0.0f);
+		tglVertex3f(-halfWidth, +height, 0.0f);
+		tglTexCoord2f(1.0f, 1.0f);
+		tglVertex3f(-halfWidth, 0.0f, 0.0f);
+		tglEnd();
+	}
 
 	tglEnable(TGL_LIGHTING);
 
@@ -807,10 +869,6 @@ void GfxTinyGL::createBitmap(BitmapData *bitmap) {
 
 void GfxTinyGL::blit(const Graphics::PixelFormat &format, BlitImage *image, byte *dst, byte *src, int x, int y, int width, int height, bool trans) {
 	int srcX, srcY;
-	int clampWidth, clampHeight;
-
-	if (x >= _gameWidth || y >= _gameHeight)
-		return;
 
 	if (x < 0) {
 		srcX = -x;
@@ -818,6 +876,7 @@ void GfxTinyGL::blit(const Graphics::PixelFormat &format, BlitImage *image, byte
 	} else {
 		srcX = 0;
 	}
+
 	if (y < 0) {
 		srcY = -y;
 		y = 0;
@@ -825,18 +884,33 @@ void GfxTinyGL::blit(const Graphics::PixelFormat &format, BlitImage *image, byte
 		srcY = 0;
 	}
 
-	if (x + width > _gameWidth)
-		clampWidth = _gameWidth - x;
+	blit(format, image, dst, src, x, y, srcX, srcY, width, height, width, height, trans);
+}
+
+void GfxTinyGL::blit(const Graphics::PixelFormat &format, BlitImage *image, byte *dst, byte *src, int dstX, int dstY, int srcX, int srcY, int width, int height, int srcWidth, int srcHeight, bool trans) {
+	if (_dimLevel >= 1.0f) {
+		return;
+	} else if (_dimLevel > 0.0f) {
+		warning("TinyGL doesn't implement partial screen-dimming yet");
+	}
+
+	if (dstX >= _gameWidth || dstY >= _gameHeight)
+		return;
+
+	int clampWidth, clampHeight;
+
+	if (dstX + width > _gameWidth)
+		clampWidth = _gameWidth - dstX;
 	else
 		clampWidth = width;
 
-	if (y + height > _gameHeight)
-		clampHeight = _gameHeight - y;
+	if (dstY + height > _gameHeight)
+		clampHeight = _gameHeight - dstY;
 	else
 		clampHeight = height;
 
-	dst += (x + (y * _gameWidth)) * format.bytesPerPixel;
-	src += (srcX + (srcY * width)) * format.bytesPerPixel;
+	dst += (dstX + (dstY * _gameWidth)) * format.bytesPerPixel;
+	src += (srcX + (srcY * srcWidth)) * format.bytesPerPixel;
 
 	Graphics::PixelBuffer srcBuf(format, src);
 	Graphics::PixelBuffer dstBuf(format, dst);
@@ -845,13 +919,26 @@ void GfxTinyGL::blit(const Graphics::PixelFormat &format, BlitImage *image, byte
 		for (int l = 0; l < clampHeight; l++) {
 			dstBuf.copyBuffer(0, clampWidth, srcBuf);
 			dstBuf.shiftBy(_gameWidth);
-			srcBuf.shiftBy(width);
+			srcBuf.shiftBy(srcWidth);
 		}
 	} else {
 		if (image) {
 			BlitImage::Line *l = image->_lines;
-			while (l) {
-				memcpy(dstBuf.getRawBuffer(l->y * _gameWidth + l->x), l->pixels, l->length * format.bytesPerPixel);
+			int maxY = srcY + clampHeight;
+			int maxX = srcX + clampWidth;
+			while (l && l->y < srcY)
+				l = l->next;
+
+			while (l && l->y <= maxY) {
+				if (l->x < maxX && l->x + l->length > srcX) {
+					int length = l->length;
+					int skipStart = l->x < srcX ? srcX - l->x : 0;
+					length -= skipStart;
+					int skipEnd   = l->x + l->length > maxX ? l->x + l->length - maxX : 0;
+					length -= skipEnd;
+					memcpy(dstBuf.getRawBuffer((l->y - srcY) * _gameWidth + MAX(l->x - srcX, 0)),
+							l->pixels + skipStart * format.bytesPerPixel, length * format.bytesPerPixel);
+				}
 				l = l->next;
 			}
 		} else {
@@ -862,13 +949,58 @@ void GfxTinyGL::blit(const Graphics::PixelFormat &format, BlitImage *image, byte
 					}
 				}
 				dstBuf.shiftBy(_gameWidth);
-				srcBuf.shiftBy(width);
+				srcBuf.shiftBy(srcWidth);
 			}
 		}
 	}
 }
 
-void GfxTinyGL::drawBitmap(const Bitmap *bitmap, int x, int y) {
+void GfxTinyGL::drawBitmap(const Bitmap *bitmap, int x, int y, bool initialDraw) {
+
+	// PS2 EMI uses a TGA for it's splash-screen, avoid using the following
+	// code for drawing that (as it has no tiles).
+	if (g_grim->getGameType() == GType_MONKEY4 && bitmap->_data->_numImages > 1) {
+		// tglColor3f(1.0f - _dimLevel, 1.0f - _dimLevel, 1.0f  - _dimLevel);
+
+		BitmapData *data = bitmap->_data;
+		float *texc = data->_texc;
+
+		int curLayer, frontLayer;
+		if (initialDraw) {
+			curLayer = frontLayer = data->_numLayers - 1;
+		} else {
+			curLayer = data->_numLayers - 2;
+			frontLayer = 0;
+		}
+
+		BlitImage *b = (BlitImage *)bitmap->getTexIds();
+
+		while (frontLayer <= curLayer) {
+			uint32 offset = data->_layers[curLayer]._offset;
+			for (uint32 i = offset; i < offset + data->_layers[curLayer]._numImages; ++i) {
+				const BitmapData::Vert & v = data->_verts[i];
+				uint32 texId = v._texid;
+				uint32 ntex = data->_verts[i]._pos * 4;
+				uint32 numRects = data->_verts[i]._verts / 4;
+				while (numRects-- > 0) {
+					int dx1 = ((texc[ntex+0] + 1) * _screenWidth) / 2;
+					int dy1 = ((1 - texc[ntex+1]) * _screenHeight) / 2;
+					int dx2 = ((texc[ntex+8] + 1) * _screenWidth) / 2;
+					int dy2 = ((1 - texc[ntex+9]) * _screenHeight) / 2;
+					int srcX = texc[ntex+2] * bitmap->getWidth();
+					int srcY = texc[ntex+3] * bitmap->getHeight();
+
+					blit(bitmap->getPixelFormat(texId), &b[texId], _zb->pbuf.getRawBuffer(), bitmap->getData(texId).getRawBuffer(),
+							x + dx1, y + dy1, srcX, srcY, dx2 - dx1, dy2 - dy1, b[texId]._width, b[texId]._height, !initialDraw);
+					ntex += 16;
+				}
+			}
+			curLayer--;
+		}
+
+		return;
+	}
+
 	int format = bitmap->getFormat();
 	if ((format == 1 && !_renderBitmaps) || (format == 5 && !_renderZBitmaps)) {
 		return;
@@ -973,6 +1105,12 @@ void GfxTinyGL::createTextObject(TextObject *text) {
 		userData[j].x = text->getLineX(j);
 		userData[j].y = text->getLineY(j);
 
+		if (g_grim->getGameType() == GType_MONKEY4) {
+			userData[j].y -= font->getBaseOffsetY();
+			if (userData[j].y < 0)
+				userData[j].y = 0;
+		}
+
 		delete[] _textBitmap;
 	}
 }
@@ -1030,6 +1168,8 @@ void GfxTinyGL::createMaterial(Texture *material, const char *data, const CMap *
 	if (material->_colorFormat == BM_RGBA) {
 		format = TGL_RGBA;
 //		internalFormat = TGL_RGBA;
+	} else if (material->_colorFormat == BM_BGRA) {
+		format = TGL_BGRA;
 	} else {	// The only other colorFormat we load right now is BGR
 		format = TGL_BGR;
 //		internalFormat = TGL_RGB;

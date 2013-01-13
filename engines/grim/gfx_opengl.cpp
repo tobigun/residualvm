@@ -4,19 +4,19 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
 
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
 
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  */
 
@@ -140,6 +140,7 @@ byte *GfxOpenGL::setupScreen(int screenW, int screenH, bool fullscreen) {
 	_smushNumTex = 0;
 
 	_currentShadowArray = NULL;
+	glViewport(0, 0, _screenWidth, _screenHeight);
 
 	GLfloat ambientSource[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 	glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambientSource);
@@ -371,9 +372,8 @@ void GfxOpenGL::getBoundingBoxPos(const Mesh *model, int *x1, int *y1, int *x2, 
 	*y2 = (int)bottom;
 }
 
-void GfxOpenGL::startActorDraw(const Math::Vector3d &pos, float scale, const Math::Angle &yaw,
-		const Math::Angle &pitch, const Math::Angle &roll, const bool inOverworld,
-		const float alpha) {
+void GfxOpenGL::startActorDraw(const Math::Vector3d &pos, float scale, const Math::Quaternion &quat,
+	                             const bool inOverworld, const float alpha) {
 	glEnable(GL_TEXTURE_2D);
 	glMatrixMode(GL_PROJECTION);
 	glPushMatrix();
@@ -421,14 +421,7 @@ void GfxOpenGL::startActorDraw(const Math::Vector3d &pos, float scale, const Mat
 		glMultMatrixf(worldRot.getData());
 
 		glScalef(scale, scale, scale);
-		if (g_grim->getGameType() == GType_MONKEY4) {
-			Math::Matrix4 charRot = Math::Quaternion::fromEuler(yaw, pitch, roll).toMatrix();
-			glMultMatrixf(charRot.getData());
-		} else {
-			glRotatef(yaw.getDegrees(), 0, 0, 1);
-			glRotatef(pitch.getDegrees(), 1, 0, 0);
-			glRotatef(roll.getDegrees(), 0, 1, 0);
-		}
+		glMultMatrixf(quat.toMatrix().getData());
 	}
 }
 
@@ -526,15 +519,19 @@ void GfxOpenGL::drawEMIModelFace(const EMIModel* model, const EMIMeshFace* face)
 	glEnable(GL_DEPTH_TEST);
 	glDisable(GL_ALPHA_TEST);
 	glDisable(GL_LIGHTING);
-	glEnable(GL_TEXTURE_2D);
+	if (face->_hasTexture)
+		glEnable(GL_TEXTURE_2D);
+	else
+		glDisable(GL_TEXTURE_2D);
 
+	float dim = 1.0f - _dimLevel;
 	glBegin(GL_TRIANGLES);
 	for (uint j = 0; j < face->_faceLength * 3; j++) {
 		int index = indices[j];
 		if (face->_hasTexture) {
 			glTexCoord2f(model->_texVerts[index].getX(), model->_texVerts[index].getY());
 		}
-		glColor4ub(model->_colorMap[index].r, model->_colorMap[index].g, model->_colorMap[index].b, (int)(model->_colorMap[index].a * _alpha));
+		glColor4ub((byte)(model->_colorMap[index].r * dim), (byte)(model->_colorMap[index].g * dim), (byte)(model->_colorMap[index].b * dim), (int)(model->_colorMap[index].a * _alpha));
 
 		Math::Vector3d normal = model->_normals[index];
 		Math::Vector3d vertex = model->_drawVertices[index];
@@ -547,6 +544,8 @@ void GfxOpenGL::drawEMIModelFace(const EMIModel* model, const EMIMeshFace* face)
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_ALPHA_TEST);
 	glEnable(GL_LIGHTING);
+	glDisable(GL_BLEND);
+	glDepthMask(true);
 	glColor3f(1.0f,1.0f,1.0f);
 }
 
@@ -596,19 +595,41 @@ void GfxOpenGL::drawSprite(const Sprite *sprite) {
 	glEnable(GL_ALPHA_TEST);
 	glDisable(GL_LIGHTING);
 
-	glBegin(GL_POLYGON);
-	glTexCoord2f(0.0f, 0.0f);
-	glVertex3f((sprite->_width / 2) *_scaleW, sprite->_height * _scaleH, 0.0f);
-	glTexCoord2f(0.0f, 1.0f);
-	glVertex3f((sprite->_width / 2) * _scaleW, 0.0f, 0.0f);
-	glTexCoord2f(1.0f, 1.0f);
-	glVertex3f((-sprite->_width / 2) * _scaleW, 0.0f, 0.0f);
-	glTexCoord2f(1.0f, 0.0f);
-	glVertex3f((-sprite->_width / 2) * _scaleW, sprite->_height * _scaleH, 0.0f);
-	glEnd();
+	if (g_grim->getGameType() == GType_MONKEY4) {
+		float halfWidth = (sprite->_width / 2) * _scaleW;
+		float halfHeight = (sprite->_height / 2) * _scaleH;
+
+		glBegin(GL_POLYGON);
+		glTexCoord2f(0.0f, 1.0f);
+		glVertex3f(-halfWidth, -halfHeight, 0.0f);
+		glTexCoord2f(0.0f, 0.0f);
+		glVertex3f(-halfWidth, +halfHeight, 0.0f);
+		glTexCoord2f(1.0f, 0.0f);
+		glVertex3f(+halfWidth, +halfHeight, 0.0f);
+		glTexCoord2f(1.0f, 1.0f);
+		glVertex3f(+halfWidth, -halfHeight, 0.0f);
+		glEnd();
+	} else {
+		// In Grim, the bottom edge of the sprite is at y=0 and
+		// the texture is flipped along the X-axis.
+		float halfWidth = (sprite->_width / 2) * _scaleW;
+		float height = sprite->_height * _scaleH;
+
+		glBegin(GL_POLYGON);
+		glTexCoord2f(0.0f, 1.0f);
+		glVertex3f(+halfWidth, 0.0f, 0.0f);
+		glTexCoord2f(0.0f, 0.0f);
+		glVertex3f(+halfWidth, +height, 0.0f);
+		glTexCoord2f(1.0f, 0.0f);
+		glVertex3f(-halfWidth, +height, 0.0f);
+		glTexCoord2f(1.0f, 1.0f);
+		glVertex3f(-halfWidth, 0.0f, 0.0f);
+		glEnd();
+	}
 
 	glEnable(GL_LIGHTING);
 	glDisable(GL_ALPHA_TEST);
+	glDepthMask(GL_TRUE);
 
 	glPopMatrix();
 }
@@ -632,7 +653,9 @@ void GfxOpenGL::translateViewpointFinish() {
 }
 
 void GfxOpenGL::enableLights() {
-	glEnable(GL_LIGHTING);
+	if (!isShadowModeActive()) {
+		glEnable(GL_LIGHTING);
+	}
 }
 
 void GfxOpenGL::disableLights() {
@@ -802,7 +825,68 @@ void GfxOpenGL::createBitmap(BitmapData *bitmap) {
 	}
 }
 
-void GfxOpenGL::drawBitmap(const Bitmap *bitmap, int dx, int dy) {
+void GfxOpenGL::drawBitmap(const Bitmap *bitmap, int dx, int dy, bool initialDraw) {
+
+	// The PS2 version of EMI uses a TGA for it's splash-screen
+	// avoid using the TIL-code below for that, by checking
+	// numImages here:
+	if (g_grim->getGameType() == GType_MONKEY4 && bitmap->_data->_numImages > 1) {
+		glMatrixMode(GL_MODELVIEW);
+		glPushMatrix();
+		glLoadIdentity();
+		glMatrixMode(GL_PROJECTION);
+		glPushMatrix();
+		glLoadIdentity();
+		glOrtho(-1, 1, -1, 1, 0, 1);
+
+		glDisable(GL_LIGHTING);
+		glEnable(GL_TEXTURE_2D);
+
+		glDisable(GL_DEPTH_TEST);
+		glDepthMask(GL_FALSE);
+
+		glColor3f(1.0f - _dimLevel, 1.0f - _dimLevel, 1.0f  - _dimLevel);
+
+		BitmapData *data = bitmap->_data;
+		GLuint *textures = (GLuint *)bitmap->getTexIds();
+		float *texc = data->_texc;
+
+		int curLayer, frontLayer;
+		if (initialDraw) {
+			curLayer = frontLayer = data->_numLayers - 1;
+		} else {
+			curLayer = data->_numLayers - 2;
+			frontLayer = 0;
+		}
+
+		while (frontLayer <= curLayer) {
+			uint32 offset = data->_layers[curLayer]._offset;
+			for (uint32 i = offset; i < offset + data->_layers[curLayer]._numImages; ++i) {
+				glBindTexture(GL_TEXTURE_2D, textures[data->_verts[i]._texid]);
+				glBegin(GL_QUADS);
+				uint32 ntex = data->_verts[i]._pos * 4;
+				for (uint32 x = 0; x < data->_verts[i]._verts; ++x) {
+					glTexCoord2f(texc[ntex + 2], texc[ntex + 3]);
+					glVertex2f(texc[ntex + 0], texc[ntex + 1]);
+					ntex += 4;
+				}
+				glEnd();
+			}
+			curLayer--;
+		}
+
+		glDisable(GL_TEXTURE_2D);
+		glDepthMask(GL_TRUE);
+		glEnable(GL_DEPTH_TEST);
+		glEnable(GL_LIGHTING);
+
+		glPopMatrix();
+		glMatrixMode(GL_MODELVIEW);
+		glPopMatrix();
+
+		return;
+	}
+
 	int format = bitmap->getFormat();
 	if ((format == 1 && !_renderBitmaps) || (format == 5 && !_renderZBitmaps)) {
 		return;
@@ -1038,7 +1122,9 @@ void GfxOpenGL::drawTextObject(const TextObject *text) {
 		int y = text->getLineY(j);
 		for (uint i = 0; i < line.size(); ++i) {
 			uint8 character = line[i];
-			float w = y + font->getCharStartingLine(character) + font->getBaseOffsetY();
+			float w = y + font->getCharStartingLine(character);
+			if (g_grim->getGameType() == GType_GRIM)
+				w += font->getBaseOffsetY();
 			float z = x + font->getCharStartingCol(character);
 			z *= _scaleW;
 			w *= _scaleH;
@@ -1104,6 +1190,9 @@ void GfxOpenGL::createMaterial(Texture *material, const char *data, const CMap *
 	if (material->_colorFormat == BM_RGBA) {
 		format = GL_RGBA;
 		internalFormat = GL_RGBA;
+	} else if (material->_colorFormat == BM_BGRA) {
+		format = GL_BGRA;
+		internalFormat = GL_RGBA;
 	} else {	// The only other colorFormat we load right now is BGR
 		format = GL_BGR;
 		internalFormat = GL_RGB;
@@ -1122,6 +1211,11 @@ void GfxOpenGL::createMaterial(Texture *material, const char *data, const CMap *
 void GfxOpenGL::selectMaterial(const Texture *material) {
 	GLuint *textures = (GLuint *)material->_texture;
 	glBindTexture(GL_TEXTURE_2D, textures[0]);
+
+	if (material->_hasAlpha && g_grim->getGameType() == GType_MONKEY4) {
+		glEnable(GL_BLEND);
+		glDepthMask(false);
+	}
 
 	// Grim has inverted tex-coords, EMI doesn't
 	if (g_grim->getGameType() != GType_MONKEY4) {

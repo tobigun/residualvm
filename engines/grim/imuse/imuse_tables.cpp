@@ -4,19 +4,19 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
 
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
 
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  */
 
@@ -169,9 +169,9 @@ ImuseTable grimStateMusicTable[] = {
 	{3, 1301,   0, 0, 60, 127,   0, "1301 - Temple Gate.IMC"},
 	{3, 1302,   0, 0, 60, 127,   0, "1301 - Temple Gate.IMC"},
 	{2, 1303,   0, 0, 60, 105,   0, "1303 - Truck Depot.IMC"},
-	{3, 1306, 143, 0, 60, 127,   0, "1304 - Mayan Train Sta.IMC"},
-	{3, 1304, 143, 0, 60, 127,   0, "1305 - Mayan Workshop.IMC"},
-	{2, 1305,   0, 0, 60, 127,   0, "1306 - Mayan Train Pad.IMC"},
+	{3, 1304, 143, 0, 60, 127,   0, "1304 - Mayan Train Sta.IMC"},
+	{2, 1305,   0, 0, 60, 127,   0, "1305 - Mayan Workshop.IMC"},
+	{3, 1306, 143, 0, 60, 127,   0, "1306 - Mayan Train Pad.IMC"},
 	{2, 1307,   0, 4, 60,  40,  64, "1307 - Mechanic's Kitch.IMC"},
 	{3, 1310,   0, 0, 60, 127,   0, "1310 - Jello Bomb.IMC"},
 	{3, 1311,   0, 0, 60, 127,   0, "1310 - Jello Bomb.IMC"},
@@ -188,7 +188,6 @@ ImuseTable grimStateMusicTable[] = {
 	{3, 1322,   0, 0, 60, 127,   0, "1321 - LSA Sewer.IMC"},
 	{3, 1323,   0, 2, 60, 127,   0, "1323 - Sewer Maze.IMC"},
 	{3, 1324,   0, 0, 60, 127,   0, "1324 - Albinozod.IMC"},
-	{3, 1334,   0, 0, 60, 127,   0, "1334 - Albino Trap.IMC"},
 	{3, 1325, 162, 0, 60, 127,   0, "1325 - Florist Shop.IMC"},
 	{3, 1326, 162, 0, 60, 127,   0, "1326 - Florist Shop Int.IMC"},
 	{2, 1327,   0, 0, 60, 127,   0, "1327 - Florist OK.IMC"},
@@ -196,15 +195,16 @@ ImuseTable grimStateMusicTable[] = {
 	{2, 1329,   0, 4, 60, 127,   0, "1329 - Theater Backstag.IMC"},
 	{2, 1330,   0, 0, 60, 127,   0, "1330 - Lemans Lobby.IMC"},
 	{2, 1331,   0, 0, 60,  60,   0, "1330 - Lemans Lobby.IMC"},
-	{2, 1333,   0, 0, 60, 127,   0, "1333 - Brennis Talk.IMC"},
 	{3, 1332,   0, 0, 60, 127,   0, "1332 - Hector's Foyer.IMC"},
+	{2, 1333,   0, 0, 60, 127,   0, "1333 - Brennis Talk.IMC"},
+	{3, 1334,   0, 0, 60, 127,   0, "1334 - Albino Trap.IMC"},
 	{2, 1340,   0, 0, 60, 127,   0, "1342 - Neon Ledge.IMC"},
 	{2, 1350,   0, 0, 60, 127,   0, "1350 - Meadow Flowers.IMC"},
 	{2, 1351,   0, 0, 60, 127,   0, "1351 - Meadow.IMC"},
 	{2, 1352,   0, 0, 60, 127,   0, "1352 - Car Head.IMC"},
 	{2, 1353,   0, 0, 60, 127,   0, "1353 - Greenhouse Appr.IMC"},
-	{2, 1355,   0, 0, 60, 127,   0, "1354 - Game Ending.IMC"},
-	{2, 1354,   0, 0, 60, 127,   0, "1355 - Shootout.IMC"},
+	{2, 1354,   0, 0, 60, 127,   0, "1354 - Game Ending.IMC"},
+	{2, 1355,   0, 0, 60, 127,   0, "1355 - Shootout.IMC"},
 	{2, 1400,   0, 0,  1, 105,   0, "1400 - Start Credits.IMC"},
 	{2, 1401,   0, 0, 60, 127,   0, "1401 - Smooth Hector.IMC"},
 	{0, 1500,   0, 0, 60, 127,   0, ""},

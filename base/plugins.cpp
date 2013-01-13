@@ -111,8 +111,7 @@ public:
 		LINK_PLUGIN(DMEDIA)
 		#endif
 		#if defined(__amigaos4__)
-//ResidualVM: disabled below
-//		LINK_PLUGIN(CAMD)
+		LINK_PLUGIN(CAMD)
 		#endif
 		#if defined(MACOSX)
 		LINK_PLUGIN(COREAUDIO)
@@ -128,14 +127,14 @@ public:
 //ResidualVM: disabled belows
 //		LINK_PLUGIN(PCSPK)
 //		LINK_PLUGIN(PCJR)
-		LINK_PLUGIN(CMS)
+//		LINK_PLUGIN(CMS)
 		#if defined(__ANDROID__)
 //		LINK_PLUGIN(EAS)
 		#endif
 		#ifndef DISABLE_SID
 //		LINK_PLUGIN(C64)
-		#endif
 //		LINK_PLUGIN(AMIGA)
+		#endif
 //		LINK_PLUGIN(APPLEIIGS)
 //		LINK_PLUGIN(TOWNS)
 //		LINK_PLUGIN(PC98)

@@ -92,6 +92,15 @@ public:
 
 	DECLARE_VAR(92, HotspotActiveRect)
 
+	DECLARE_VAR(93, WaterEffectPaused)
+	DECLARE_VAR(94, WaterEffectActive)
+	DECLARE_VAR(95, WaterEffectSpeed)
+	DECLARE_VAR(96, WaterEffectAttenuation)
+	DECLARE_VAR(97, WaterEffectFrequency)
+	DECLARE_VAR(98, WaterEffectAmpl)
+	DECLARE_VAR(99, WaterEffectMaxStep)
+	DECLARE_VAR(100, WaterEffectAmplOffset)
+
 	DECLARE_VAR(115, SunspotIntensity)
 	DECLARE_VAR(116, SunspotColor)
 	DECLARE_VAR(117, SunspotRadius)
@@ -129,6 +138,10 @@ public:
 
 	DECLARE_VAR(178, MovieUseBackground)
 	DECLARE_VAR(179, CameraSkipAnimation)
+	DECLARE_VAR(180, MovieAmbiantScriptStartFrame)
+	DECLARE_VAR(181, MovieAmbiantScript)
+	DECLARE_VAR(182, MovieScriptStartFrame)
+	DECLARE_VAR(183, MovieScript)
 
 	DECLARE_VAR(185, CameraMoveSpeed)
 
@@ -232,13 +245,13 @@ public:
 	float getMinHeading() { return _data.minHeading; }
 	float getMaxHeading() { return _data.maxHeading; }
 
+
+	Graphics::Surface *getSaveThumbnail() const;
+	void setSaveThumbnail(Graphics::Surface *thumb);
+	void setSaveDescription(const Common::String &description) { _data.saveDescription = description; }
+
 	Common::Array<uint16> getInventory();
 	void updateInventory(const Common::Array<uint16> &items);
-
-private:
-	Myst3Engine *_vm;
-
-	static const uint32 kSaveVersion = 148;
 
 	struct StateData {
 		uint32 version;
@@ -270,7 +283,30 @@ private:
 		uint32 inventoryCount;
 		uint32 inventoryList[7];
 		int8 zipDestinations[256];
+
+		uint8 saveDay;
+		uint8 saveMonth;
+		uint16 saveYear;
+
+		uint8 saveHour;
+		uint8 saveMinute;
+
+		Common::String saveDescription;
+
+		Common::SharedPtr<Graphics::Surface> thumbnail;
+
+		StateData();
+		void syncWithSaveGame(Common::Serializer &s);
 	};
+
+
+	static const uint kThumbnailWidth = 240;
+	static const uint kThumbnailHeight = 135;
+
+private:
+	Myst3Engine *_vm;
+
+	static const uint32 kSaveVersion = 149;
 
 	StateData _data;
 
@@ -285,12 +321,14 @@ private:
 
 	Common::HashMap<uint16, Description> _descriptions;
 
-	void syncWithSaveGame(Common::Serializer &s);
-
 	void checkRange(uint16 var);
 
 	int32 engineGet(uint16 var);
 	void engineSet(uint16 var, int32 value);
+
+	static void syncFloat(Common::Serializer &s, float &val,
+			Common::Serializer::Version minVersion = 0,
+			Common::Serializer::Version maxVersion = Common::Serializer::kLastVersion);
 };
 
 } /* namespace Myst3 */

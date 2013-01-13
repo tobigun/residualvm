@@ -1,22 +1,22 @@
 /* ResidualVM - A 3D game interpreter
  *
  * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the COPYRIGHT
+ * are too numerous to list here. Please refer to the AUTHORS
  * file distributed with this source distribution.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
 
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
 
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  */
 
@@ -399,8 +399,15 @@ Material *ResourceLoader::loadMaterial(const Common::String &filename, CMap *c) 
 	Common::SeekableReadStream *stream;
 
 	stream = openNewStreamFile(fname.c_str(), true);
-	if(!stream)
-		error("Could not find material %s", filename.c_str());
+	if(!stream) {
+		// FIXME: EMI demo references files that aren't included. Return a known material.
+		// This should be fixed in the data files instead.
+		if (g_grim->getGameType() == GType_MONKEY4 && g_grim->getGameFlags() & ADGF_DEMO) {
+			const Common::String replacement("fx/candle.sprb");
+			warning("Could not find material %s, using %s instead", filename.c_str(), replacement.c_str());
+			return loadMaterial(replacement, NULL);
+		}
+	}
 
 	Material *result = new Material(fname, stream, c);
 	delete stream;
@@ -451,6 +458,25 @@ Skeleton *ResourceLoader::loadSkeleton(const Common::String &filename) {
 	}
 
 	Skeleton *result = new Skeleton(filename, stream);
+	delete stream;
+
+	return result;
+}
+
+Sprite *ResourceLoader::loadSprite(const Common::String &filename) {
+	assert(g_grim->getGameType() == GType_MONKEY4);
+	Common::SeekableReadStream *stream;
+
+	const Common::String fname = fixFilename(filename, true);
+
+	stream = openNewStreamFile(fname.c_str(), true);
+	if(!stream) {
+		warning("Could not find sprite %s", fname.c_str());
+		return NULL;
+	}
+
+	Sprite *result = new Sprite;
+	result->loadBinary(stream);
 	delete stream;
 
 	return result;

@@ -4,19 +4,19 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- 
- * This library is distributed in the hope that it will be useful,
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- 
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  */
 
@@ -115,10 +115,10 @@ void EMISound::stopSound(const char *soundName) {
 	freeChannel(channel);
 }
 
-int32 EMISound::getPosIn60HzTicks(const char *soundName) {	
+int32 EMISound::getPosIn16msTicks(const char *soundName) {
 	int32 channel = getChannelByName(soundName);
 	assert(channel != -1);
-	return g_system->getMixer()->getSoundElapsedTime(*_channels[channel]->getHandle());
+	return (62.5 / 60.0) * g_system->getMixer()->getSoundElapsedTime(*_channels[channel]->getHandle()); //16 ms is 62.5 Hz
 }
 	
 void EMISound::setVolume(const char *soundName, int volume) {
@@ -136,7 +136,10 @@ void EMISound::setMusicState(int stateId) {
 		delete _music;
 		_music = NULL;
 	}
-	if (stateId == 0 || (_musicTable != NULL && _musicTable[stateId]._id != stateId)) {
+	if (stateId == 0)
+		return;
+	if (_musicTable != NULL && _musicTable[stateId]._id != stateId) {
+		warning("Attempted to play track #%d, not found in music table!", stateId);
 		return;
 	}
 	Common::String filename;
@@ -149,6 +152,7 @@ void EMISound::setMusicState(int stateId) {
 		filename = _musicTable[stateId]._filename;
 		_music = new MP3Track(Audio::Mixer::kMusicSoundType);	
 	}
+	warning("Loading music: %s", filename.c_str());
 	Common::SeekableReadStream *str = g_resourceloader->openNewStreamFile(_musicPrefix + filename);
 
 	if (_music->openSound(filename, str))
@@ -163,8 +167,13 @@ uint32 EMISound::getMsPos(int stateId) {
 	
 MusicEntry *initMusicTableDemo(Common::String filename) {
 	Common::SeekableReadStream *data = g_resourceloader->openNewStreamFile(filename);
+
+	if (!data)
+		error("Couldn't open %s", filename.c_str());
 	// FIXME, for now we use a fixed-size table, as I haven't looked at the retail-data yet.
 	MusicEntry *musicTable = new MusicEntry[15];
+	for (unsigned int i = 0; i < 15; i++)
+		musicTable[i]._id = -1;
 	
 	TextSplitter *ts = new TextSplitter(data);
 	int id, x, y, sync;
@@ -187,6 +196,7 @@ MusicEntry *initMusicTableDemo(Common::String filename) {
 		ts->nextLine();
 	}
 	delete ts;
+	delete data;
 	return musicTable;
 }
 
@@ -197,6 +207,8 @@ MusicEntry *initMusicTableRetail(Common::String filename) {
 	if (!data)
 		error("Couldn't open %s", filename.c_str());
 	MusicEntry *musicTable = new MusicEntry[126];
+	for (unsigned int i = 0; i < 126; i++)
+		musicTable[i]._id = -1;
 	
 	TextSplitter *ts = new TextSplitter(data);
 	int id, x, y, sync, trim;
@@ -224,6 +236,7 @@ MusicEntry *initMusicTableRetail(Common::String filename) {
 		ts->nextLine();
 	}
 	delete ts;
+	delete data;
 	return musicTable;
 }
 
@@ -241,4 +254,43 @@ void EMISound::initMusicTable() {
 		_musicPrefix = "Textures/spago/"; // Hardcode the high-quality music for now.
 	}
 }
+
+void EMISound::selectMusicSet(int setId) {
+	if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+		assert(setId == 0);
+		_musicPrefix = "";
+		return;
+	}
+	if (setId == 0) {
+		_musicPrefix = "Textures/spago/";
+	} else if (setId == 1) {
+		_musicPrefix = "Textures/mego/";
+	} else {
+		error("EMISound::selectMusicSet - Unknown setId %d", setId);
+	}
+}
+
+void EMISound::pushStateToStack() {
+	if (_music)
+		_music->pause();
+	_stateStack.push(_music);
+	_music = NULL;
+}
+
+void EMISound::popStateFromStack() {
+	if (_music) {
+		delete _music;
+		_music = _stateStack.pop();
+		if (_music)
+			_music->pause();
+	}
+}
+
+void EMISound::flushStack() {
+	while (!_stateStack.empty()) {
+		SoundTrack *temp = _stateStack.pop();
+		delete temp;
+	}
+}
+
 } // end of namespace Grim

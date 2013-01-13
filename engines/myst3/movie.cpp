@@ -40,18 +40,19 @@ Movie::Movie(Myst3Engine *vm, uint16 id) :
 	_endFrame(0),
 	_texture(0),
 	_force2d(false),
+	_forceOpaque(false),
 	_subtitles(0) {
 
-	const DirectorySubEntry *binkDesc = _vm->getFileDescription(0, id, 0, DirectorySubEntry::kMovie);
+	const DirectorySubEntry *binkDesc = _vm->getFileDescription(0, id, 0, DirectorySubEntry::kMultitrackMovie);
+
+	if (!binkDesc)
+		binkDesc = _vm->getFileDescription(0, id, 0, DirectorySubEntry::kDialogMovie);
 
 	if (!binkDesc)
 		binkDesc = _vm->getFileDescription(0, id, 0, DirectorySubEntry::kStillMovie);
 
 	if (!binkDesc)
-		binkDesc = _vm->getFileDescription(0, id, 0, DirectorySubEntry::kMultitrackMovie);
-
-	if (!binkDesc)
-		binkDesc = _vm->getFileDescription(0, id, 0, DirectorySubEntry::kDialogMovie);
+		binkDesc = _vm->getFileDescription(0, id, 0, DirectorySubEntry::kMovie);
 
 	if (!binkDesc)
 		error("Movie %d does not exist", id);
@@ -59,13 +60,14 @@ Movie::Movie(Myst3Engine *vm, uint16 id) :
 	loadPosition(binkDesc->getVideoData());
 
 	Common::MemoryReadStream *binkStream = binkDesc->getData();
-	_bink.loadStream(binkStream, Graphics::PixelFormat(4, 8, 8, 8, 8, 0, 8, 16, 24));
+	_bink.setDefaultHighColorFormat(Graphics::PixelFormat(4, 8, 8, 8, 8, 0, 8, 16, 24));
+	uint language = ConfMan.getInt("audio_language");
+	_bink.loadStream(binkStream);
+	_bink.setAudioTrack(language);
+	_bink.start();
 
 	if (ConfMan.getBool("subtitles"))
 		_subtitles = Subtitles::create(_vm, id);
-
-	uint language = ConfMan.getInt("audio_language");
-	_bink.setAudioTrack(language);
 }
 
 void Movie::loadPosition(const VideoData &videoData) {
@@ -110,7 +112,11 @@ void Movie::draw2d() {
 		screenRect.translate(0, Renderer::kTopBorderHeight);
 
 	Common::Rect textureRect = Common::Rect(_bink.getWidth(), _bink.getHeight());
-	_vm->_gfx->drawTexturedRect2D(screenRect, textureRect, _texture, 0.99f);
+
+	if (_forceOpaque)
+		_vm->_gfx->drawTexturedRect2D(screenRect, textureRect, _texture);
+	else
+		_vm->_gfx->drawTexturedRect2D(screenRect, textureRect, _texture, 0.99f);
 }
 
 void Movie::draw3d() {
@@ -141,10 +147,12 @@ void Movie::drawOverlay() {
 void Movie::drawNextFrameToTexture() {
 	const Graphics::Surface *frame = _bink.decodeNextFrame();
 
-	if (_texture)
-		_texture->update(frame);
-	else
-		_texture = _vm->_gfx->createTexture(frame);
+	if (frame) {
+		if (_texture)
+			_texture->update(frame);
+		else
+			_texture = _vm->_gfx->createTexture(frame);
+	}
 }
 
 Movie::~Movie() {
@@ -222,6 +230,7 @@ void ScriptedMovie::update() {
 					|| _bink.getCurFrame() < _startFrame
 					|| _bink.endOfVideo()) {
 				_bink.seekToFrame(_startFrame);
+				_isLastFrame = false;
 			}
 
 			if (!_scriptDriven)
@@ -238,10 +247,15 @@ void ScriptedMovie::update() {
 		if (_nextFrameReadVar) {
 			int32 nextFrame = _vm->_state->getVar(_nextFrameReadVar);
 			if (nextFrame > 0 && nextFrame <= (int32)_bink.getFrameCount()) {
+				// Are we changing frame?
 				if (_bink.getCurFrame() != nextFrame - 1) {
-					_bink.seekToFrame(nextFrame - 1);
+					// Don't seek if we just want to display the next frame
+					if (_bink.getCurFrame() + 1 != nextFrame - 1) {
+						_bink.seekToFrame(nextFrame - 1);
+					}
 					drawNextFrameToTexture();
 				}
+
 				_vm->_state->setVar(_nextFrameReadVar, 0);
 				_isLastFrame = false;
 			}
@@ -252,7 +266,7 @@ void ScriptedMovie::update() {
 			bool complete = false;
 
 			if (_isLastFrame) {
-				_isLastFrame = 0;
+				_isLastFrame = false;
 
 				if (_loop) {
 					_bink.seekToFrame(_startFrame);
@@ -298,6 +312,25 @@ SimpleMovie::SimpleMovie(Myst3Engine *vm, uint16 id) :
 bool SimpleMovie::update() {
 	if (_bink.getCurFrame() < (_startFrame - 1)) {
 		_bink.seekToFrame(_startFrame - 1);
+	}
+
+	uint16 scriptStartFrame = _vm->_state->getMovieScriptStartFrame();
+	if (scriptStartFrame && _bink.getCurFrame() > scriptStartFrame) {
+		uint16 script = _vm->_state->getMovieScript();
+
+		// The control variables are reset before running the script because
+		// some scripts set up another movie triggered script
+		_vm->_state->setMovieScriptStartFrame(0);
+		_vm->_state->setMovieScript(0);
+
+		_vm->runScriptsFromNode(script);
+	}
+
+	uint16 ambiantStartFrame = _vm->_state->getMovieAmbiantScriptStartFrame();
+	if (ambiantStartFrame && _bink.getCurFrame() > ambiantStartFrame) {
+		_vm->runAmbientScripts(_vm->_state->getMovieAmbiantScript());
+		_vm->_state->setMovieAmbiantScriptStartFrame(0);
+		_vm->_state->setMovieAmbiantScript(0);
 	}
 
 	if (!_synchronized) {

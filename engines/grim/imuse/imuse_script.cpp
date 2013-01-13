@@ -4,19 +4,19 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
 
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
 
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  */
 
@@ -95,7 +95,7 @@ void Imuse::startSfx(const char *soundName, int priority) {
 	startSound(soundName, IMUSE_VOLGRP_SFX, 0, 127, 0, priority, NULL);
 }
 
-int32 Imuse::getPosIn60HzTicks(const char *soundName) {
+int32 Imuse::getPosIn16msTicks(const char *soundName) {
 	Common::StackLock lock(_mutex);
 	Track *getTrack = NULL;
 
@@ -106,7 +106,7 @@ int32 Imuse::getPosIn60HzTicks(const char *soundName) {
 		return false;
 	}
 
-	int32 pos = (5 * (getTrack->dataOffset + getTrack->regionOffset)) / (getTrack->feedSize / 12);
+	int32 pos = (62.5 / 60.0) * (5 * (getTrack->dataOffset + getTrack->regionOffset)) / (getTrack->feedSize / 12); // 16ms is 62.5 Hz
 	return pos;
 }
 

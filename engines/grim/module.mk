@@ -14,6 +14,7 @@ MODULE_OBJS := \
 	costume/model_component.o \
 	costume/sound_component.o \
 	costume/sprite_component.o \
+	costume/anim_component.o \
 	emi/costume/emianim_component.o \
 	emi/costume/emiluavar_component.o \
 	emi/costume/emiluacode_component.o \
@@ -32,6 +33,7 @@ MODULE_OBJS := \
 	emi/costumeemi.o \
 	emi/modelemi.o \
 	emi/skeleton.o \
+	emi/poolsound.o \
 	emi/lua_v2.o \
 	emi/lua_v2_actor.o \
 	emi/lua_v2_sound.o \
@@ -72,8 +74,8 @@ MODULE_OBJS := \
 	movie/codecs/smush_decoder.o \
 	movie/bink.o \
 	movie/mpeg.o \
-	movie/smush.o \
 	movie/movie.o \
+	movie/smush.o \
 	update/packfile.o \
 	update/mscab.o \
 	update/lang_filter.o \

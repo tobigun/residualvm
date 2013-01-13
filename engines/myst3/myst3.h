@@ -42,9 +42,10 @@ namespace Myst3 {
 enum GameVersionFlags {
 	kFlagNone      = 0,
 	kFlagVersion10 = (1 << 0), // v1.0
-	kFlagSafeDisc  = (1 << 1), // SafeDisc-encrypted
-	kFlagDVD       = (1 << 2)  // DVD version
+	kFlagDVD       = (1 << 1)  // DVD version
 };
+
+typedef uint32 SafeDiskKey[4];
 
 struct ExecutableVersion {
 	const char *description;
@@ -54,6 +55,7 @@ struct ExecutableVersion {
 	uint32 ageTableOffset;
 	uint32 nodeInitScriptOffset;
 	uint32 soundNamesOffset;
+	const SafeDiskKey *safeDiskKey;
 };
 
 // Engine Debug Flags
@@ -115,6 +117,7 @@ public:
 
 	const DirectorySubEntry *getFileDescription(const char* room, uint32 index, uint16 face, DirectorySubEntry::ResourceType type);
 	Graphics::Surface *loadTexture(uint16 id);
+	static Graphics::Surface *decodeJpeg(const DirectorySubEntry *jpegDesc);
 
 	void goToNode(uint16 nodeID, uint transition);
 	void loadNode(uint16 nodeID, uint32 roomID = 0, uint32 ageID = 0);
@@ -141,7 +144,7 @@ public:
 	void setMovieLooping(uint16 id, bool loop);
 
 	void addSpotItem(uint16 id, uint16 condition, bool fade);
-	void addMenuSpotItem(uint16 id, uint16 condition, const Common::Rect &rect);
+	SpotItemFace *addMenuSpotItem(uint16 id, uint16 condition, const Common::Rect &rect);
 	void loadNodeSubtitles(uint32 id);
 
 	void addSunSpot(uint16 pitch, uint16 heading, uint16 intensity,
@@ -189,6 +192,8 @@ private:
 
 	HotSpot *getHoveredHotspot(NodePtr nodeData, uint16 var = 0);
 	void updateCursor();
+
+	bool checkDatafiles();
 
 	bool addArchive(const Common::String &file, bool mandatory);
 	void openArchives();

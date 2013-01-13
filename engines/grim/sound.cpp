@@ -1,22 +1,22 @@
 /* ResidualVM - A 3D game interpreter
  *
  * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the COPYRIGHT
+ * are too numerous to list here. Please refer to the AUTHORS
  * file distributed with this source distribution.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- 
- * This library is distributed in the hope that it will be useful,
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- 
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  */
 
@@ -64,11 +64,11 @@ void SoundPlayer::stopSound(const char *soundName) {
 	}
 }
 
-int32 SoundPlayer::getPosIn60HzTicks(const char *soundName) {
+int32 SoundPlayer::getPosIn16msTicks(const char *soundName) {
 	if (g_grim->getGameType() == GType_GRIM)
-		return g_imuse->getPosIn60HzTicks(soundName);
+		return g_imuse->getPosIn16msTicks(soundName);
 	else
-		return _emiSound->getPosIn60HzTicks(soundName);
+		return _emiSound->getPosIn16msTicks(soundName);
 }
 	
 void SoundPlayer::setVolume(const char *soundName, int volume) {
@@ -100,5 +100,25 @@ uint32 SoundPlayer::getMsPos(int stateId) {
 	assert(_emiSound); // This shouldn't ever be called from Grim.
 	return _emiSound->getMsPos(stateId);
 }
-	
+
+void SoundPlayer::selectMusicSet(int setId) {
+	assert(_emiSound);
+	return _emiSound->selectMusicSet(setId);
+}
+
+void SoundPlayer::pushState() {
+	assert(_emiSound); // This shouldn't ever be called from Grim.
+	return _emiSound->pushStateToStack();
+}
+
+void SoundPlayer::popState() {
+	assert(_emiSound); // This shouldn't ever be called from Grim.
+	return _emiSound->popStateFromStack();
+}
+
+void SoundPlayer::flushStack() {
+	assert(_emiSound); // This shouldn't ever be called from Grim.
+	return _emiSound->flushStack();
+}
+
 } // end of namespace Grim

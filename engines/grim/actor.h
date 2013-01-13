@@ -4,19 +4,19 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
 
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
 
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  */
 
@@ -28,6 +28,7 @@
 #include "engines/grim/color.h"
 #include "math/vector3d.h"
 #include "math/angle.h"
+#include "math/quat.h"
 
 namespace Grim {
 
@@ -465,10 +466,11 @@ public:
 	static void saveStaticState(SaveGame *state);
 	static void restoreStaticState(SaveGame *state);
 
-	bool isAttached() const { return _attachedActor != NULL; }
+	bool isAttached() const { return _attachedActor != 0; }
 	Math::Vector3d getWorldPos() const;
 	void attachToActor(Actor *other, const char *joint);
 	void detach();
+	Math::Quaternion getRotationQuat() const;
 
 	void setInOverworld(bool inOverworld) { _inOverworld = inOverworld; }
 	bool isInOverworld() { return _inOverworld; }
@@ -478,6 +480,12 @@ public:
 
 	int getSortOrder() const { return _sortOrder; }
 	void setSortOrder(const int order) { _sortOrder = order; }
+
+	void activateShadow(bool active) { _shadowActive = active; }
+
+	void restoreCleanBuffer();
+	void drawToCleanBuffer();
+	void clearCleanBuffer();
 
 private:
 	void costumeMarkerCallback(int marker);
@@ -585,7 +593,7 @@ private:
 	void setYaw(const Math::Angle &yaw);
 
 	Chore *getTurnChore(int dir) {
-		return (dir > 0 ? &_rightTurnChore : &_leftTurnChore);
+		return (dir > 0 ? &_leftTurnChore : &_rightTurnChore);
 	}
 
 	void freeCostumeChore(Costume *toFree, Chore *chore);
@@ -610,7 +618,7 @@ private:
 
 	static bool _isTalkingBackground;
 	int _talkDelay;
-	Actor *_attachedActor;
+	int _attachedActor;
 	Common::String _attachedJoint;
 	AlphaMode _alphaMode;
 	float _globalAlpha;
@@ -618,6 +626,10 @@ private:
 	bool _inOverworld;
 
 	int _sortOrder;
+
+	bool _shadowActive;
+	int _cleanBuffer;
+	bool _drawnToClean;
 };
 
 } // end of namespace Grim

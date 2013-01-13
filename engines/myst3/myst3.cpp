@@ -27,8 +27,10 @@
 #include "common/file.h"
 #include "common/util.h"
 #include "common/textconsole.h"
+#include "common/translation.h"
 
 #include "gui/debugger.h"
+#include "gui/error.h"
 
 #include "engines/engine.h"
 
@@ -48,6 +50,7 @@
 #include "graphics/decoders/jpeg.h"
 #include "graphics/conversion.h"
 #include "graphics/pixelbuffer.h"
+#include "graphics/yuv_to_rgb.h"
 
 #include "math/vector2d.h"
 
@@ -136,6 +139,11 @@ Common::Error Myst3Engine::run() {
 	const int w = 640;
 	const int h = 480;
 
+	if (!checkDatafiles()) {
+		// An error message has already been displayed
+		return Common::kUserCanceled;
+	}
+
 	_gfx = new Renderer(_system);
 	_sound = new Sound(this);
 	_ambient = new Ambient(this);
@@ -150,7 +158,6 @@ Common::Error Myst3Engine::run() {
 
 	_system->setupScreen(w, h, false, true);
 	_system->showMouse(false);
-	_system->lockMouse(true);
 
 	openArchives();
 
@@ -190,6 +197,7 @@ Common::Error Myst3Engine::run() {
 
 	_archiveNode->close();
 
+	// Make sure the mouse is unlocked
 	_system->lockMouse(false);
 
 	return Common::kNoError;
@@ -295,6 +303,24 @@ void Myst3Engine::closeArchives() {
 	_archivesCommon.clear();
 }
 
+bool Myst3Engine::checkDatafiles() {
+#ifndef USE_SAFEDISC
+	if (getExecutableVersion()->safeDiskKey) {
+		static const char *safediscMessage =
+				_("This version of Myst III is encrypted with a copy-protection\n"
+				"preventing ResidualVM from reading required data.\n"
+				"Please replace your 'M3.exe' file with the one from the official update\n"
+				"corresponding to your game's language and redetect the game.\n"
+				"These updates don't contain the copy-protection and can be downloaded from\n"
+				"http://www.residualvm.org/downloads/");
+		warning(safediscMessage);
+		GUI::displayErrorDialog(safediscMessage);
+		return false;
+	}
+#endif // USE_SAFEDISC
+	return true;
+}
+
 HotSpot *Myst3Engine::getHoveredHotspot(NodePtr nodeData, uint16 var) {
 	_state->setHotspotHovered(false);
 	_state->setHotspotActiveRect(0);
@@ -373,7 +399,7 @@ void Myst3Engine::processInput(bool lookOnly) {
 				_scene->updateCamera(event.relMouse);
 			}
 
-			_cursor->updatePosition(event.relMouse);
+			_cursor->updatePosition(event.mouse);
 
 		} else if (event.type == Common::EVENT_LBUTTONDOWN) {
 			// Skip the event when in look only mode
@@ -437,7 +463,7 @@ void Myst3Engine::processInput(bool lookOnly) {
 					_system->lockMouse(false);
 					_console->attach();
 					_console->onFrame();
-					_system->lockMouse(true);
+					_system->lockMouse(_cursor->isPositionLocked());
 				}
 				break;
 			default:
@@ -866,6 +892,7 @@ void Myst3Engine::playSimpleMovie(uint16 id, bool fullframe) {
 
 	if (fullframe) {
 		movie.setForce2d(_state->getViewType() == kCube);
+		movie.setForceOpaque(true);
 		movie.setPosU(0);
 		movie.setPosV(0);
 	}
@@ -882,7 +909,7 @@ void Myst3Engine::playSimpleMovie(uint16 id, bool fullframe) {
 				if (_state->getViewType() == kCube)
 					_scene->updateCamera(event.relMouse);
 
-				_cursor->updatePosition(event.relMouse);
+				_cursor->updatePosition(event.mouse);
 
 			} else if (event.type == Common::EVENT_KEYDOWN) {
 				if (event.kbd.keycode == Common::KEYCODE_SPACE
@@ -930,10 +957,15 @@ void Myst3Engine::addSpotItem(uint16 id, uint16 condition, bool fade) {
 	_node->loadSpotItem(id, condition, fade);
 }
 
-void Myst3Engine::addMenuSpotItem(uint16 id, uint16 condition, const Common::Rect &rect) {
+SpotItemFace *Myst3Engine::addMenuSpotItem(uint16 id, uint16 condition, const Common::Rect &rect) {
 	assert(_node);
 
-	_node->loadMenuSpotItem(id, condition, rect);
+	SpotItemFace *face = _node->loadMenuSpotItem(condition, rect);
+
+	if (id == 1)
+		_menu->setSaveLoadSpotItem(face);
+
+	return face;
 }
 
 void Myst3Engine::loadNodeSubtitles(uint32 id) {
@@ -974,7 +1006,7 @@ Graphics::Surface *Myst3Engine::loadTexture(uint16 id) {
 	Common::MemoryReadStream *data = desc->getData();
 
 	uint32 magic = data->readUint32LE();
-	if (magic != 0x2E544558)
+	if (magic != MKTAG('.', 'T', 'E', 'X'))
 		error("Wrong texture format %d", id);
 
 	data->readUint32LE(); // unk 1
@@ -984,25 +1016,36 @@ Graphics::Surface *Myst3Engine::loadTexture(uint16 id) {
 	data->readUint32LE(); // unk 3
 
 	Graphics::Surface *s = new Graphics::Surface();
-	s->create(width, height, Graphics::PixelFormat(4, 8, 8, 8, 8, 0, 8, 16, 24));
+	s->create(width, height, Graphics::PixelFormat(4, 8, 8, 8, 8, 8, 16, 24, 0));
 
 	data->read(s->pixels, height * s->pitch);
 	delete data;
 
 	// ARGB => RGBA
-	uint32 *p = (uint32 *)s->pixels;
-	for (uint i = 0; i < width * height; i++) {
-		uint8 a = (*p >> 0) & 0xFF;
-		uint8 r = (*p >> 24) & 0xFF;
-		uint8 g = (*p >> 16) & 0xFF;
-		uint8 b = (*p >>  8) & 0xFF;
-
-		*p = (a << 24) | (r << 16) | (g << 8) | b;
-
-		p++;
-	}
+	s->convertToInPlace(Graphics::PixelFormat(4, 8, 8, 8, 8, 0, 8, 16, 24));
 
 	return s;
+}
+
+Graphics::Surface *Myst3Engine::decodeJpeg(const DirectorySubEntry *jpegDesc) {
+	Common::MemoryReadStream *jpegStream = jpegDesc->getData();
+
+	Graphics::JPEGDecoder jpeg;
+	if (!jpeg.loadStream(*jpegStream))
+		error("Could not decode Myst III JPEG");
+	delete jpegStream;
+
+	Graphics::Surface *bitmap = new Graphics::Surface();
+	bitmap->create(jpeg.getComponent(1)->w, jpeg.getComponent(1)->h, Graphics::PixelFormat(4, 8, 8, 8, 8, 0, 8, 16, 24));
+
+	const byte *y = (const byte *)jpeg.getComponent(1)->getBasePtr(0, 0);
+	const byte *u = (const byte *)jpeg.getComponent(2)->getBasePtr(0, 0);
+	const byte *v = (const byte *)jpeg.getComponent(3)->getBasePtr(0, 0);
+
+	YUVToRGBMan.convert444(bitmap, Graphics::YUVToRGBManager::kScaleFull, y, u, v,
+			bitmap->w, bitmap->h, jpeg.getComponent(1)->pitch, jpeg.getComponent(2)->pitch);
+
+	return bitmap;
 }
 
 int16 Myst3Engine::openDialog(uint16 id) {

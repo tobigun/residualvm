@@ -4,19 +4,19 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- 
- * This library is distributed in the hope that it will be useful,
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- 
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  */
 
@@ -24,6 +24,7 @@
 #define GRIM_MSS_H
 
 #include "common/str.h"
+#include "common/stack.h"
 
 namespace Grim {
 
@@ -48,6 +49,7 @@ class EMISound {
 	SoundTrack *_music;
 	MusicEntry *_musicTable;
 	Common::String _musicPrefix;
+	Common::Stack<SoundTrack*> _stateStack;
 
 	void removeItem(SoundTrack* item);
 	int32 getFreeChannel();
@@ -60,12 +62,19 @@ public:
 	bool startVoice(const char *soundName, int volume = 127, int pan = 64);
 	bool getSoundStatus(const char *soundName);
 	void stopSound(const char *soundName);
-	int32 getPosIn60HzTicks(const char *soundName);
+	int32 getPosIn16msTicks(const char *soundName);
 
 	void setVolume(const char *soundName, int volume);
 	void setPan(const char *soundName, int pan);
 
 	void setMusicState(int stateId);
+	void selectMusicSet(int setId);
+
+// The stack-classes currently ignore g_imusestate completely.
+	void pushStateToStack();
+	void popStateFromStack();
+	void flushStack();
+
 	uint32 getMsPos(int stateId);
 };
 	

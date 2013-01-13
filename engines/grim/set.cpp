@@ -1,22 +1,22 @@
 /* ResidualVM - A 3D game interpreter
  *
  * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the COPYRIGHT
+ * are too numerous to list here. Please refer to the AUTHORS
  * file distributed with this source distribution.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
 
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
 
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  */
 
@@ -100,7 +100,7 @@ void Set::loadText(TextSplitter &ts) {
 	ts.scanString(" numsetups %d", 1, &_numSetups);
 	_setups = new Setup[_numSetups];
 	for (int i = 0; i < _numSetups; i++)
-		_setups[i].load(ts);
+		_setups[i].load(this, i, ts);
 	_currSetup = _setups;
 
 	_numSectors = -1;
@@ -193,9 +193,11 @@ void Set::loadBinary(Common::SeekableReadStream *data) {
 
 void Set::saveState(SaveGame *savedState) const {
 	savedState->writeString(_name);
-	savedState->writeLESint32(_numCmaps);
-	for (int i = 0; i < _numCmaps; ++i) {
-		savedState->writeString(_cmaps[i]->getFilename());
+	if (g_grim->getGameType() == GType_GRIM) {
+		savedState->writeLESint32(_numCmaps);
+		for (int i = 0; i < _numCmaps; ++i) {
+			savedState->writeString(_cmaps[i]->getFilename());
+		}
 	}
 	savedState->writeLEUint32((uint32)(_currSetup - _setups)); // current setup id
 	savedState->writeBool(_locked);
@@ -229,11 +231,13 @@ void Set::saveState(SaveGame *savedState) const {
 
 bool Set::restoreState(SaveGame *savedState) {
 	_name = savedState->readString();
-	_numCmaps = savedState->readLESint32();
-	_cmaps = new CMapPtr[_numCmaps];
-	for (int i = 0; i < _numCmaps; ++i) {
-		Common::String str = savedState->readString();
-		_cmaps[i] = g_resourceloader->getColormap(str);
+	if (g_grim->getGameType() == GType_GRIM) {
+		_numCmaps = savedState->readLESint32();
+		_cmaps = new CMapPtr[_numCmaps];
+		for (int i = 0; i < _numCmaps; ++i) {
+			Common::String str = savedState->readString();
+			_cmaps[i] = g_resourceloader->getColormap(str);
+		}
 	}
 
 	int32 currSetupId = savedState->readLEUint32();
@@ -280,7 +284,7 @@ bool Set::restoreState(SaveGame *savedState) {
 	return true;
 }
 
-void Set::Setup::load(TextSplitter &ts) {
+void Set::Setup::load(Set *set, int id, TextSplitter &ts) {
 	char buf[256];
 
 	ts.scanString(" setup %256s", 1, buf);
@@ -315,12 +319,19 @@ void Set::Setup::load(TextSplitter &ts) {
 	ts.scanString(" nclip %f", 1, &_nclip);
 	ts.scanString(" fclip %f", 1, &_fclip);
 	for (;;) {
+		char name[256], zname[256];
+		char bitmap[256], zbitmap[256];
+		zbitmap[0] = '\0';
 		if (ts.checkString("object_art"))
-			ts.scanString(" object_art %256s", 1, buf);
+			ts.scanString(" object_art %256s %256s", 2, name, bitmap);
 		else
 			break;
 		if (ts.checkString("object_z"))
-			ts.scanString(" object_z %256s", 1, buf);
+			ts.scanString(" object_z %256s %256s", 2, zname, zbitmap);
+
+		if (strcmp(name, zname) == 0 || zbitmap[0] == '\0') {
+			set->addObjectState(id, ObjectState::OBJSTATE_BACKGROUND, bitmap, zbitmap, true);
+		}
 	}
 }
 
@@ -545,6 +556,11 @@ void Set::setSetup(int num) {
 	g_grim->flagRefreshShadowMask(true);
 }
 
+void Set::drawForeground() const {
+	assert(g_grim->getGameType() == GType_MONKEY4);
+	_currSetup->_bkgndBm->drawForeground();
+}
+
 void Set::drawBackground() const {
 	if (_currSetup->_bkgndZBm) // Some screens have no zbuffer mask (eg, Alley)
 		_currSetup->_bkgndZBm->draw();
@@ -699,20 +715,30 @@ Sector *Set::getSectorBase(int id) {
 		return NULL;
 }
 
-Sector *Set::getSector(const Common::String &name) {
+Sector *Set::getSectorByName(const Common::String &name) {
 	for (int i = 0; i < _numSectors; i++) {
 		Sector *sector = _sectors[i];
-		if (strstr(sector->getName(), name.c_str())) {
+		if (sector->getName() == name) {
 			return sector;
 		}
 	}
 	return NULL;
 }
 
-Sector *Set::getSector(const Common::String &name, const Math::Vector3d &pos) {
+Sector *Set::getSectorBySubstring(const Common::String &str) {
 	for (int i = 0; i < _numSectors; i++) {
 		Sector *sector = _sectors[i];
-		if (strstr(sector->getName(), name.c_str()) && sector->isPointInSector(pos)) {
+		if (strstr(sector->getName().c_str(), str.c_str())) {
+			return sector;
+		}
+	}
+	return NULL;
+}
+
+Sector *Set::getSectorBySubstring(const Common::String &str, const Math::Vector3d &pos) {
+	for (int i = 0; i < _numSectors; i++) {
+		Sector *sector = _sectors[i];
+		if (strstr(sector->getName().c_str(), str.c_str()) && sector->isPointInSector(pos)) {
 			return sector;
 		}
 	}

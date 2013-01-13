@@ -24,12 +24,12 @@
 #define MYST3_ROOM_H
 
 #include "engines/myst3/gfx.h"
+#include "engines/myst3/directorysubentry.h"
 
 #include "common/array.h"
 #include "common/rect.h"
 
 #include "graphics/surface.h"
-#include "graphics/decoders/jpeg.h"
 
 namespace Myst3 {
 
@@ -45,7 +45,7 @@ class Face {
 		Face(Myst3Engine *vm);
 		~Face();
 
-		void setTextureFromJPEG(Graphics::JPEGDecoder *jpeg);
+		void setTextureFromJPEG(const DirectorySubEntry *jpegDesc);
 
 		void markTextureDirty() { _textureDirty = true; }
 		void uploadTexture();
@@ -61,8 +61,8 @@ class SpotItemFace {
 		~SpotItemFace();
 
 		void initBlack(uint16 width, uint16 height);
-		void loadData(Graphics::JPEGDecoder *jpeg);
-		void updateData(const uint8 *data);
+		void loadData(const DirectorySubEntry *jpegDesc);
+		void updateData(const Graphics::Surface *surface);
 		void clear();
 
 		void draw();
@@ -136,12 +136,12 @@ class Node : Drawable {
 		void drawOverlay();
 
 		void loadSpotItem(uint16 id, uint16 condition, bool fade);
-		void loadMenuSpotItem(uint16 id, uint16 condition, const Common::Rect &rect);
+		SpotItemFace *loadMenuSpotItem(uint16 condition, const Common::Rect &rect);
 
 		void loadSubtitles(uint32 id);
 		bool hasSubtitlesToDraw();
 
-		void dumpFaceMask(uint16 index, int face);
+		bool dumpFaceMask(uint16 index, int face, DirectorySubEntry::ResourceType type);
 };
 
 } // end of namespace Myst3

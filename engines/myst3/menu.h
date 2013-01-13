@@ -31,7 +31,7 @@
 #include "common/savefile.h"
 #include "common/str-array.h"
 
-#include "video/bink_decoder_seek.h"
+#include "video/bink_decoder.h"
 
 namespace Myst3 {
 
@@ -70,14 +70,12 @@ private:
 	Common::String _saveName;
 	bool _saveDrawCaret;
 	int32 _saveCaretCounter;
-	Graphics::Surface *_saveThumb;
 
 	static const uint kCaretSpeed = 25;
-	static const uint kMiniatureSize = 240 * 135;
 
 	void saveLoadUpdateVars();
 
-	void createThumbnail(Graphics::Surface *big, Graphics::Surface *small);
+	Graphics::Surface *createThumbnail(Graphics::Surface *big);
 	void saveGameReadThumbnail(Common::InSaveFile *save);
 	void saveGameWriteThumbnail(Common::OutSaveFile *save);
 
@@ -96,7 +94,7 @@ private:
 	Myst3Engine *_vm;
 
 	Common::MemoryReadStream *_movieStream;
-	Video::SeekableBinkDecoder _bink;
+	Video::BinkDecoder _bink;
 	uint16 _previousframe;
 	uint16 _frameToDisplay;
 

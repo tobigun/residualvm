@@ -4,19 +4,19 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
 
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
 
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  */
 
@@ -27,6 +27,7 @@
 #include "engines/grim/emi/sound/aifftrack.h"
 #include "engines/grim/emi/sound/scxtrack.h"
 #include "engines/grim/emi/lua_v2.h"
+#include "engines/grim/emi/poolsound.h"
 #include "engines/grim/lua/lua.h"
 
 #include "engines/grim/sound.h"
@@ -139,8 +140,23 @@ void Lua_V2::SetGroupVolume() {
 	if (lua_isnumber(volumeObj))
 		volume = (int)lua_getnumber(volumeObj);
 
+	volume = (volume * Audio::Mixer::kMaxMixerVolume) / 100;
+
+	switch (group) {
+		case 1: // SFX
+			g_system->getMixer()->setVolumeForSoundType(Audio::Mixer::kSFXSoundType, volume);
+			break;
+		case 2: // Voice
+			g_system->getMixer()->setVolumeForSoundType(Audio::Mixer::kSpeechSoundType, volume);
+			break;
+		case 3: // Music
+			g_system->getMixer()->setVolumeForSoundType(Audio::Mixer::kMusicSoundType, volume);
+			break;
+		default:
+			error("Lua_V2::SetGroupVolume - unknown group %d", group);
+	}
 	// FIXME: func(group, volume);
-	warning("Lua_V2::SetGroupVolume: implement opcode, group: %d, volume %d", group, volume);
+	warning("Lua_V2::SetGroupVolume: group: %d, volume %d", group, volume);
 }
 
 void Lua_V2::EnableAudioGroup() {
@@ -156,7 +172,21 @@ void Lua_V2::EnableAudioGroup() {
 		state = true;
 
 	// FIXME: func(group, state);
-	warning("Lua_V2::EnableAudioGroup: implement opcode, group: %d, state %d", group, (int)state);
+	switch (group) {
+		case 1: // SFX
+			g_system->getMixer()->muteSoundType(Audio::Mixer::kSFXSoundType, !state);
+			break;
+		case 2: // Voice
+			g_system->getMixer()->muteSoundType(Audio::Mixer::kSpeechSoundType, !state);
+			break;
+		case 3: // Music
+			g_system->getMixer()->muteSoundType(Audio::Mixer::kMusicSoundType, !state);
+			break;
+		default:
+			error("Lua_V2::EnableAudioGroup - unknown group %d", group);
+	}
+
+	warning("Lua_V2::EnableAudioGroup: group: %d, state %d", group, (int)state);
 }
 
 void Lua_V2::ImSelectSet() {
@@ -165,29 +195,17 @@ void Lua_V2::ImSelectSet() {
 	if (lua_isnumber(qualityObj)) {
 		int quality = (int)lua_getnumber(qualityObj);
 		// FIXME: func(quality);
-		warning("Lua_V2::ImSelectSet: implement opcode, quality mode: %d", quality);
+		g_sound->selectMusicSet(quality);
+		warning("Lua_V2::ImSelectSet: quality mode: %d", quality);
 	}
 }
 
 void Lua_V2::ImFlushStack() {
 	// FIXME
-	warning("Lua_V2::ImFlushStack: implement opcode");
+	warning("Lua_V2::ImFlushStack: currently guesswork");
+	g_sound->flushStack();
 }
 
-class PoolSound : public PoolObject<PoolSound>{
-public:
-	PoolSound(const Common::String &filename);
-	static int32 getStaticTag() { return MKTAG('A', 'I', 'F', 'F'); }
-	AIFFTrack *track;
-};
-
-PoolSound::PoolSound(const Common::String &filename) {
-	track = new AIFFTrack(Audio::Mixer::kSFXSoundType);
-	Common::SeekableReadStream *stream = g_resourceloader->openNewStreamFile(filename);
-	if (!stream)
-		return;
-	track->openSound(filename, stream);
-}
 
 void Lua_V2::LoadSound() {
 	lua_Object strObj = lua_getparam(1);
@@ -265,11 +283,13 @@ void Lua_V2::PlaySound() {
 		if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
 			filename += ".scx";
 		} else {
-			filename += ".aif";
+			if (!filename.hasSuffix(".aif")) {
+				filename += ".aif";
+			}
 		}
 	}
 
-	Common::SeekableReadStream *stream = g_resourceloader->openNewStreamFile(filename);
+	Common::SeekableReadStream *stream = g_resourceloader->openNewStreamFile(filename, true);
 	if (!stream) {
 		warning("Lua_V2::PlaySound: Could not find sound '%s'", filename.c_str());
 		return;
@@ -342,10 +362,12 @@ void Lua_V2::StopAllSounds() {
 }
 
 void Lua_V2::ImPushState() {
-	warning("Lua_V2::ImPushState: implement opcode");
+	g_sound->pushState();
+	warning("Lua_V2::ImPushState: currently guesswork");
 }
 void Lua_V2::ImPopState() {
-	warning("Lua_V2::ImPopState: implement opcode");
+	g_sound->popState();
+	warning("Lua_V2::ImPopState: currently guesswork");
 }
 
 } // end of namespace Grim

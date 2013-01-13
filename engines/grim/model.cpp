@@ -4,19 +4,19 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
 
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
 
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  */
 
@@ -40,6 +40,39 @@ void Sprite::draw() const {
 	_material->select();
 	g_driver->drawSprite(this);
 }
+
+void Sprite::loadBinary(Common::SeekableReadStream *stream) {
+	if (!stream)
+		return;
+
+	uint32 namelength = stream->readUint32LE();
+	stream->skip(namelength);
+
+	stream->seek(40, SEEK_CUR);
+	uint32 texnamelength = stream->readUint32LE();
+	char *texname = new char[texnamelength];
+	stream->read(texname, texnamelength);
+	/* unknown = */ stream->readUint32LE();
+	float width, height;
+	float offX, offY;
+	char data[16];
+	stream->read(data, sizeof(data));
+	width = get_float(data);
+	height = get_float(data + 4);
+	offX = get_float(data + 8);
+	offY = get_float(data + 12);
+
+
+	_material = g_resourceloader->loadMaterial(texname, 0);
+	_width = width;
+	_height = height;
+	_next = NULL;
+	_visible = true;
+	_pos.set(-offX, offY, 0);
+
+	delete[] texname;
+}
+
 
 /**
  * @class Model

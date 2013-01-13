@@ -4,19 +4,19 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
 
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
 
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  */
 
@@ -30,9 +30,10 @@
 
 namespace Grim {
 
-AIFFTrack::AIFFTrack(Audio::Mixer::SoundType soundType) {
+AIFFTrack::AIFFTrack(Audio::Mixer::SoundType soundType, DisposeAfterUse::Flag disposeOfStream) {
 	_soundType = soundType;
 	_looping = false;
+	_disposeAfterPlaying = disposeOfStream;
 }
 
 AIFFTrack::~AIFFTrack() {
@@ -43,17 +44,21 @@ AIFFTrack::~AIFFTrack() {
 bool AIFFTrack::openSound(Common::String soundName, Common::SeekableReadStream *file) {
 	if (!file) {
 		warning("Stream for %s not open", soundName.c_str());
-		//return false;
+		return false;
 	}
 	_soundName = soundName;
 	_stream = Audio::makeAIFFStream(file, DisposeAfterUse::NO);
+	if (!_stream)
+		return false;
 	_handle = new Audio::SoundHandle();
 	return true;
 }
 
 void AIFFTrack::setLooping(bool looping) {
+	if (_looping == looping)
+		return;
 	_looping = looping;
-	if (looping) {
+	if (looping && _stream) {
 		_stream = Audio::makeLoopingAudioStream(static_cast<Audio::SeekableAudioStream *>(_stream), 0);
 	}
 }

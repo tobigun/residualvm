@@ -4,19 +4,19 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
 
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
 
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  */
 
@@ -105,7 +105,7 @@ void Chore::setKeys(int startTime, int stopTime) {
 			continue;
 
 		for (int j = 0; j < _tracks[i].numKeys; j++) {
-			if (_tracks[i].keys[j].time > stopTime)
+			if (_tracks[i].keys[j].time > stopTime && stopTime != -1)
 				break;
 			if (_tracks[i].keys[j].time > startTime)
 				comp->setKey(_tracks[i].keys[j].value);
@@ -125,12 +125,16 @@ void Chore::setLastFrame() {
 	// Moreover, the choppy behaviour stated above happens with grim original too,
 	// meaning the bug is not in Residual but in the scripts or in GrimE design.
 
-	_currTime = _length;
+	_currTime = -1;
 	_playing = false;
 	_hasPlayed = true;
 	_looping = false;
-	setKeys(-1, _currTime);
-	_currTime = -1;
+
+	// In the demo, the chore 4 (stop_talk) of ms.cos, has length 67, and 4 keys,
+	// the last two of which are at time 133 and 200. We use -1 as stopTime here
+	// as a special value, instead of _length, to ensure all the keys are run.
+	// (failing to do so will result in manny's mouth not closing when he stops talking)
+	setKeys(-1, -1);
 }
 
 void Chore::update(uint time) {
@@ -182,6 +186,9 @@ void Chore::fadeOut(uint msecs) {
 	// Note: It doesn't matter whether the chore is playing or not. The keyframe
 	// components should fade out in either case.
 	fade(Animation::FadeOut, msecs);
+
+	// Stop the chore, but do not alter the components state.
+	_playing = false;
 }
 
 void Chore::saveState(SaveGame *state) const {

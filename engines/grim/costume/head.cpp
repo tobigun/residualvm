@@ -4,19 +4,19 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
 
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
 
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  */
 
@@ -234,14 +234,9 @@ void Head::saveState(SaveGame *state) const {
 	state->writeFloat(_maxYaw);
 	state->writeFloat(_maxRoll);
 
-	// TODO: Remove on next save format change.
-	state->writeFloat(0.0f);
-	state->writeFloat(0.0f);
-
-	// TODO: Uncomment on next save format change.
-	//_joint1.saveState(state);
-	//_joint2.saveState(state);
-	//_joint3.saveState(state);
+	_joint1.saveState(state);
+	_joint2.saveState(state);
+	_joint3.saveState(state);
 }
 
 void Head::restoreState(SaveGame *state) {
@@ -252,14 +247,14 @@ void Head::restoreState(SaveGame *state) {
 	_maxYaw = state->readFloat();
 	_maxRoll = state->readFloat();
 
-	// TODO: Remove on next save format change.
-	state->readFloat();
-	state->readFloat();
-
-	// TODO: Uncomment on next save format change.
-	//_joint1.restoreState(state);
-	//_joint2.restoreState(state);
-	//_joint3.restoreState(state);
+	if (state->saveMinorVersion() < 2) {
+		state->readFloat();
+		state->readFloat();
+	} else {
+		_joint1.restoreState(state);
+		_joint2.restoreState(state);
+		_joint3.restoreState(state);
+	}
 }
 
 } // end of namespace Grim

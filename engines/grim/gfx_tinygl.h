@@ -4,19 +4,19 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
 
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
 
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  */
 
@@ -26,6 +26,10 @@
 #include "engines/grim/gfx_base.h"
 
 #include "graphics/tinygl/zgl.h"
+
+namespace TinyGL {
+	struct Buffer;
+}
 
 namespace Grim {
 
@@ -53,9 +57,8 @@ public:
 
 	void getBoundingBoxPos(const Mesh *model, int *x1, int *y1, int *x2, int *y2);
 
-	void startActorDraw(const Math::Vector3d &pos, float scale, const Math::Angle &yaw,
-						const Math::Angle &pitch, const Math::Angle &roll, const bool inOverworld,
-						const float alpha);
+	void startActorDraw(const Math::Vector3d &pos, float scale, const Math::Quaternion &quat,
+	                    const bool inOverworld, const float alpha);
 	void finishActorDraw();
 	void setShadow(Shadow *shadow);
 	void drawShadowPlanes();
@@ -85,7 +88,7 @@ public:
 	void destroyMaterial(Texture *material);
 
 	void createBitmap(BitmapData *bitmap);
-	void drawBitmap(const Bitmap *bitmap, int x, int y);
+	void drawBitmap(const Bitmap *bitmap, int x, int y, bool initialDraw = true);
 	void destroyBitmap(BitmapData *bitmap);
 
 	void createFont(Font *font);
@@ -114,12 +117,14 @@ public:
 	void drawMovieFrame(int offsetX, int offsetY);
 	void releaseMovieFrame();
 
-	void selectScreenBuffer();
-	void selectCleanBuffer();
-	void clearCleanBuffer();
-	void drawCleanBuffer();
-
 	void createSpecialtyTextures();
+
+	int genBuffer();
+	void delBuffer(int buffer);
+	void selectBuffer(int buffer);
+	void clearBuffer(int buffer);
+	void drawBuffers();
+	void refreshBuffers();
 
 protected:
 
@@ -130,9 +135,11 @@ private:
 	int _smushHeight;
 	Graphics::PixelBuffer _storedDisplay;
 	float _alpha;
+	Common::HashMap<int, TinyGL::Buffer *> _buffers;
 
 	void readPixels(int x, int y, int width, int height, uint8 *buffer);
 	void blit(const Graphics::PixelFormat &format, BlitImage *blit, byte *dst, byte *src, int x, int y, int width, int height, bool trans);
+	void blit(const Graphics::PixelFormat &format, BlitImage *blit, byte *dst, byte *src, int dstX, int dstY, int srcX, int srcY, int width, int height, int srcWidth, int srcHeight, bool trans);
 };
 
 } // end of namespace Grim

@@ -4,19 +4,19 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
 
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
 
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  */
 
@@ -44,6 +44,7 @@
 #include "engines/grim/lua.h"
 #include "engines/grim/lua_v1.h"
 #include "engines/grim/emi/lua_v2.h"
+#include "engines/grim/emi/poolsound.h"
 #include "engines/grim/actor.h"
 #include "engines/grim/movie/movie.h"
 #include "engines/grim/savegame.h"
@@ -493,7 +494,7 @@ void GrimEngine::updateDisplayScene() {
 		// need to render underneath the animation or you can't see what's going on
 		// This should not occur on top of everything though or Manny gets covered
 		// up when he's next to Glottis's service room
-		if (g_movie->isPlaying()) {
+		if (g_movie->isPlaying() && _movieSetup == _currSet->getCurrSetup()->_name) {
 			_movieTime = g_movie->getMovieTime();
 			if (g_movie->isUpdateNeeded()) {
 				g_driver->prepareMovieFrame(g_movie->getDstSurface());
@@ -520,17 +521,29 @@ void GrimEngine::updateDisplayScene() {
 		g_driver->set3DMode();
 
 		if (_setupChanged) {
-			g_driver->clearCleanBuffer();
 			cameraPostChangeHandle(_currSet->getSetup());
 			_setupChanged = false;
 		}
 
 		// Draw actors
 		buildActiveActorsList();
-		foreach (Actor *a, _activeActors) {
-			if (a->isVisible())
-				a->draw();
+		if (g_grim->getGameType() == GType_GRIM) {
+			foreach (Actor *a, _activeActors) {
+				if (a->isVisible())
+					a->draw();
+			}
+		} else {
+			bool drewForeground = false;
+			foreach (Actor *a, _activeActors) {
+				if (a->getSortOrder() < 15 && !drewForeground) {
+					drewForeground = true;
+					_currSet->drawForeground();
+				}
+				if (a->isVisible() && a->getSortOrder() < 100)
+					a->draw();
+			}
 		}
+
 
 		flagRefreshShadowMask(false);
 
@@ -539,7 +552,7 @@ void GrimEngine::updateDisplayScene() {
 		// including 3D objects such as Manny and the message tube
 		_currSet->drawBitmaps(ObjectState::OBJSTATE_OVERLAY);
 
-		g_driver->drawCleanBuffer();
+		g_driver->drawBuffers();
 		drawPrimitives();
 	} else if (_mode == DrawMode) {
 		_doFlip = false;
@@ -758,6 +771,11 @@ void GrimEngine::savegameRestore() {
 	Actor::getPool().restoreObjects(_savedState);
 	Debug::debug(Debug::Engine, "Actors restored succesfully.");
 
+	if (getGameType() == GType_MONKEY4) {
+		PoolSound::getPool().restoreObjects(_savedState);
+		Debug::debug(Debug::Engine, "Pool sounds saved succesfully.");
+	}
+
 	restoreGRIM();
 	Debug::debug(Debug::Engine, "Engine restored succesfully.");
 
@@ -793,6 +811,13 @@ void GrimEngine::savegameRestore() {
 	clearEventQueue();
 	invalidateActiveActorsList();
 	buildActiveActorsList();
+
+	g_driver->refreshBuffers();
+	_currSet->setupCamera();
+	g_driver->set3DMode();
+	foreach (Actor *a, Actor::getPool()) {
+		a->restoreCleanBuffer();
+	}
 }
 
 void GrimEngine::restoreGRIM() {
@@ -854,11 +879,14 @@ void GrimEngine::storeSaveGameImage(SaveGame *state) {
 void GrimEngine::savegameSave() {
 	debug("GrimEngine::savegameSave() started.");
 	_savegameSaveRequest = false;
-	char filename[200];
+	Common::String filename;
 	if (_savegameFileName.size() == 0) {
-		strcpy(filename, "grim.sav");
+		filename = "grim.sav";
 	} else {
-		strcpy(filename, _savegameFileName.c_str());
+		filename = _savegameFileName;
+	}
+	if (getGameType() == GType_MONKEY4 && filename.contains('/')) {
+		filename = Common::lastPathComponent(filename, '/');
 	}
 	_savedState = SaveGame::openForSaving(filename);
 	if (!_savedState) {
@@ -894,6 +922,11 @@ void GrimEngine::savegameSave() {
 
 	Actor::getPool().saveObjects(_savedState);
 	Debug::debug(Debug::Engine, "Actors saved succesfully.");
+
+	if (getGameType() == GType_MONKEY4) {
+		PoolSound::getPool().saveObjects(_savedState);
+		Debug::debug(Debug::Engine, "Pool sounds saved succesfully.");
+	}
 
 	saveGRIM();
 	Debug::debug(Debug::Engine, "Engine saved succesfully.");
@@ -1005,7 +1038,9 @@ void GrimEngine::setSet(Set *scene) {
 	// and coords change too.
 	foreach (Actor *a, Actor::getPool()) {
 		a->stopWalking();
+		a->clearCleanBuffer();
 	}
+	g_driver->refreshBuffers();
 
 	Set *lastSet = _currSet;
 	_currSet = scene;
@@ -1104,6 +1139,18 @@ void GrimEngine::setMovieSubtitle(TextObject *to) {
 		delete _movieSubtitle;
 		_movieSubtitle = to;
 	}
+}
+
+void GrimEngine::setMovieSetup() {
+	_movieSetup = _currSet->getCurrSetup()->_name;
+}
+
+void GrimEngine::setMode(EngineMode mode) {
+	if (_mode == SmushMode)
+		setMovieSubtitle(NULL);
+
+	_mode = mode;
+	invalidateActiveActorsList();
 }
 
 void GrimEngine::clearEventQueue() {

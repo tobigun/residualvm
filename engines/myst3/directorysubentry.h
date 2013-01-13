@@ -50,7 +50,9 @@ class DirectorySubEntry {
 	public:
 		enum ResourceType {
 			kCubeFace = 0,
-			kFaceMask = 1,
+			kWaterEffectMask = 1,
+			kEffect2Mask = 2,
+			kMagneticEffectMask = 3,
 			kSpotItem = 5,
 			kFrame = 6,
 			kCursor = 7,
@@ -59,8 +61,8 @@ class DirectorySubEntry {
 			kText = 11,
 			kTextMetadata = 12,
 			kNumMetadata = 13,
-			kMenuSpotItem = 69,
-			kMenuFrame = 70,
+			kLocalizedSpotItem = 69,
+			kLocalizedFrame = 70,
 			kMultitrackMovie = 72,
 			kDialogMovie = 74
 		};

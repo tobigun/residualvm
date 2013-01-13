@@ -4,19 +4,19 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
 
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
 
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  */
 
@@ -194,9 +194,6 @@ void Lua_V1::SetActorTalkChore() {
 	if (!findCostume(costumeObj, actor, &costume))
 		return;
 
-	if (!costume)
-		return;
-
 	actor->setTalkChore(index, chore, costume);
 }
 
@@ -220,9 +217,6 @@ void Lua_V1::SetActorMumblechore() {
 		chore = (int)lua_getnumber(choreObj);
 	}
 	if (!findCostume(costumeObj, actor, &costume))
-		return;
-
-	if (!costume)
 		return;
 
 	actor->setMumbleChore(chore, costume);
@@ -586,6 +580,14 @@ void Lua_V1::WalkActorTo() {
 	actor->walkTo(destVec);
 }
 
+/* This draw an actor to an offscreen buffer.
+ * The actors' buffers blit to the global buffer which then gets blitted to screen.
+ * This double layer system is necessary for set at, where Glottis and the Albinizod
+ * are drawn to the clean buffer but at different times.
+ *
+ * If you change the clean system check with the sets dd, at and with the trail of flowers
+ * in sh or zw.
+ */
 void Lua_V1::ActorToClean() {
 	lua_Object actorObj = lua_getparam(1);
 
@@ -595,10 +597,7 @@ void Lua_V1::ActorToClean() {
 	}
 
 	Actor *actor = getactor(actorObj);
-
-	g_driver->selectCleanBuffer();
-	actor->draw();
-	g_driver->selectScreenBuffer();
+	actor->drawToCleanBuffer();
 }
 
 void Lua_V1::IsActorMoving() {
@@ -832,6 +831,9 @@ void Lua_V1::PlayActorChore() {
 	int chore = (int)lua_getnumber(choreObj);
 
 	if (!costume) {
+		costume = actor->getCurrentCostume();
+	}
+	if (!costume) {
 		lua_pushnil();
 		return;
 	}
@@ -860,6 +862,9 @@ void Lua_V1::CompleteActorChore() {
 	}
 	int chore = (int)lua_getnumber(choreObj);
 
+	if (!costume) {
+		costume = actor->getCurrentCostume();
+	}
 	if (!costume) {
 		lua_pushnil();
 		return;
@@ -890,6 +895,9 @@ void Lua_V1::PlayActorChoreLooping() {
 	int chore = (int)lua_getnumber(choreObj);
 
 	if (!costume) {
+		costume = actor->getCurrentCostume();
+	}
+	if (!costume) {
 		lua_pushnil();
 		return;
 	}
@@ -912,6 +920,9 @@ void Lua_V1::SetActorChoreLooping() {
 	if (!findCostume(costumeObj, actor, &costume))
 		return;
 
+	if (!costume) {
+		costume = actor->getCurrentCostume();
+	}
 	if (!costume)
 		return;
 
@@ -937,6 +948,9 @@ void Lua_V1::StopActorChore() {
 	if (!findCostume(costumeObj, actor, &costume))
 		return;
 
+	if (!costume) {
+		costume = actor->getCurrentCostume();
+	}
 	if (!costume)
 		return;
 
@@ -963,6 +977,9 @@ void Lua_V1::FadeOutChore() {
 	if (!findCostume(costumeObj, actor, &costume))
 		return;
 
+	if (!costume) {
+		costume = actor->getCurrentCostume();
+	}
 	if (!costume)
 		return;
 
@@ -989,6 +1006,9 @@ void Lua_V1::FadeInChore() {
 	if (!findCostume(costumeObj, actor, &costume))
 		return;
 
+	if (!costume) {
+		costume = actor->getCurrentCostume();
+	}
 	if (!costume)
 		return;
 
@@ -1014,6 +1034,9 @@ void Lua_V1::IsActorChoring() {
 	if (!findCostume(costumeObj, actor, &costume))
 		return;
 
+	if (!costume) {
+		costume = actor->getCurrentCostume();
+	}
 	if (!costume) {
 		lua_pushnil();
 		return;

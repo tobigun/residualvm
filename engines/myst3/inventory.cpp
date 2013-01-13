@@ -63,8 +63,8 @@ void Inventory::draw() {
 	for (ItemList::const_iterator it = _inventory.begin(); it != _inventory.end(); it++) {
 		int32 state = _vm->_state->getVar(it->var);
 
-		// Don't draw if the item is being dragged
-		if (state == -1)
+		// Don't draw if the item is being dragged or is hidden
+		if (state == -1 || state == 0)
 			continue;
 
 		const ItemData &item = getData(it->var);
@@ -282,7 +282,9 @@ DragItem::DragItem(Myst3Engine *vm, uint id):
 
 	// Load the movie
 	_movieStream = movieDesc->getData();
-	_bink.loadStream(_movieStream, Graphics::PixelFormat(4, 8, 8, 8, 8, 0, 8, 16, 24));
+	_bink.setDefaultHighColorFormat(Graphics::PixelFormat(4, 8, 8, 8, 8, 0, 8, 16, 24));
+	_bink.loadStream(_movieStream);
+	_bink.start();
 
 	const Graphics::Surface *frame = _bink.decodeNextFrame();
 	_texture = _vm->_gfx->createTexture(frame);

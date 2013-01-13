@@ -90,6 +90,7 @@ static void saveObjectValue(TObject *object, SaveGame *savedState) {
 				savedState->writeLESint32(object->value.ud.id);
 				savedState->writeLESint32(object->value.ud.tag);
 			}
+			break;
 		case LUA_T_STRING:
 			{
 				savedState->writeLEUint32(makeIdFromPointer(object->value.ts).low);
@@ -400,6 +401,7 @@ void lua_Save(SaveGame *savedState) {
 			savedState->writeLESint32(state->Cblocks[i].num);
 		}
 
+		savedState->writeLEUint32(state->sleepFor);
 		savedState->writeLEUint32(state->id);
 		saveObjectValue(&state->taskFunc, savedState);
 

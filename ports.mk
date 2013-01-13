@@ -8,6 +8,22 @@
 #
 install:
 	$(INSTALL) -d "$(DESTDIR)$(bindir)"
+	$(INSTALL) -c -m 755 "./$(EXECUTABLE)" "$(DESTDIR)$(bindir)/$(EXECUTABLE)"
+	$(INSTALL) -d "$(DESTDIR)$(mandir)/man6/"
+	$(INSTALL) -c -m 644 "$(srcdir)/dists/residualvm.6" "$(DESTDIR)$(mandir)/man6/residualvm.6"
+	$(INSTALL) -d "$(DESTDIR)$(datarootdir)/pixmaps/"
+	$(INSTALL) -c -m 644 "$(srcdir)/icons/residualvm.xpm" "$(DESTDIR)$(datarootdir)/pixmaps/residualvm.xpm"
+	$(INSTALL) -d "$(DESTDIR)$(docdir)"
+	$(INSTALL) -c -m 644 $(DIST_FILES_DOCS) "$(DESTDIR)$(docdir)"
+	$(INSTALL) -d "$(DESTDIR)$(datadir)"
+	$(INSTALL) -c -m 644 $(DIST_FILES_THEMES) $(DIST_FILES_ENGINEDATA) "$(DESTDIR)$(datadir)/"
+ifdef DYNAMIC_MODULES
+	$(INSTALL) -d "$(DESTDIR)$(libdir)/residualvm/"
+	$(INSTALL) -c -m 644 $(PLUGINS) "$(DESTDIR)$(libdir)/residualvm/"
+endif
+
+install-strip:
+	$(INSTALL) -d "$(DESTDIR)$(bindir)"
 	$(INSTALL) -c -s -m 755 "./$(EXECUTABLE)" "$(DESTDIR)$(bindir)/$(EXECUTABLE)"
 	$(INSTALL) -d "$(DESTDIR)$(mandir)/man6/"
 	$(INSTALL) -c -m 644 "$(srcdir)/dists/residualvm.6" "$(DESTDIR)$(mandir)/man6/residualvm.6"
@@ -171,8 +187,9 @@ osxsnap: bundle
 	cp $(srcdir)/COPYING.FREEFONT ./ResidualVM-snapshot/License\ \(FREEFONT\)
 	cp $(srcdir)/COPYING.ISC ./ResidualVM-snapshot/License\ \(ISC\)
 	cp $(srcdir)/COPYRIGHT ./ResidualVM-snapshot/Copyright\ Holders
+	cp $(srcdir)/KNOWN_BUGS ./ResidualVM-snapshot/Known Bugs
 	cp $(srcdir)/NEWS ./ResidualVM-snapshot/News
-	cp $(srcdir)/README ./ResidualVM-snapshot/Residual\ ReadMe
+	cp $(srcdir)/README ./ResidualVM-snapshot/ResidualVM\ ReadMe
 	mkdir ResidualVM-snapshot/doc
 	cp $(srcdir)/doc/QuickStart ./ResidualVM-snapshot/doc/QuickStart
 	SetFile -t ttro -c ttxt ./ResidualVM-snapshot/*
@@ -210,6 +227,7 @@ endif
 	cp $(srcdir)/COPYING.LGPL $(WIN32PATH)/COPYING.LGPL.txt
 	cp $(srcdir)/COPYING.FREEFONT $(WIN32PATH)/COPYING.FREEFONT.txt
 	cp $(srcdir)/COPYRIGHT $(WIN32PATH)/COPYRIGHT.txt
+	cp $(srcdir)/KNOWN_BUGS $(WIN32PATH)/KNOWN_BUGS.txt
 	cp $(srcdir)/NEWS $(WIN32PATH)/NEWS.txt
 	cp $(srcdir)/doc/QuickStart $(WIN32PATH)/doc/QuickStart.txt
 	cp $(srcdir)/README $(WIN32PATH)/README.txt
@@ -276,6 +294,7 @@ endif
 	cp $(srcdir)/COPYING.FREEFONT ResidualVMWin32/COPYING.FREEFONT.txt
 	cp $(srcdir)/COPYING.ISC ResidualVMWin32/COPYING.ISC.txt
 	cp $(srcdir)/COPYRIGHT ResidualVMWin32/COPYRIGHT.txt
+	cp $(srcdir)/KNOWN_BUGS ResidualVMWin32/KNOWN_BUGS.txt
 	cp $(srcdir)/NEWS ResidualVMWin32/NEWS.txt
 	cp $(srcdir)/doc/QuickStart ResidualVMWin32/doc/QuickStart.txt
 	cp $(srcdir)/README ResidualVMWin32/README.txt
@@ -292,8 +311,10 @@ endif
 # Special target to create an AmigaOS snapshot installation
 aos4dist: $(EXECUTABLE)
 	mkdir -p $(AOS4PATH)
+	mkdir -p $(AOS4PATH)/themes
+	mkdir -p $(AOS4PATH)/extras
 	$(STRIP) $(EXECUTABLE) -o $(AOS4PATH)/$(EXECUTABLE)
-	cp icons/residualvm.info $(AOS4PATH)/$(EXECUTABLE).info
+	cp ${srcdir}/icons/residualvm.info $(AOS4PATH)/$(EXECUTABLE).info
 	cp $(DIST_FILES_THEMES) $(AOS4PATH)/themes/
 ifdef DIST_FILES_ENGINEDATA
 	cp $(DIST_FILES_ENGINEDATA) $(AOS4PATH)/extras/
@@ -303,8 +324,10 @@ endif
 # Special target to cross create an AmigaOS snapshot installation
 aos4dist-cross: $(EXECUTABLE)
 	mkdir -p ResidualVM
-	$(STRIP) $(EXECUTABLE) -o ResidualVM/ResidualVM
-	cp icons/residualvm.info ResidualVM/ResidualVM.info
+	mkdir -p $(AOS4PATH)/themes
+	mkdir -p $(AOS4PATH)/extras
+	$(STRIP) $(EXECUTABLE) -o $(AOS4PATH)/$(EXECUTABLE)
+	cp ${srcdir}/icons/residualvm.info $(AOS4PATH)/$(EXECUTABLE).info
 	cp $(DIST_FILES_THEMES) ResidualVM
 ifdef DIST_FILES_ENGINEDATA
 	cp $(DIST_FILES_ENGINEDATA) ResidualVM
@@ -316,6 +339,7 @@ endif
 	cp $(srcdir)/COPYING.FREEFONT ResidualVM/COPYING.FREEFONT.txt
 	cp $(srcdir)/COPYING.ISC ResidualVM/COPYING.ISC.txt
 	cp $(srcdir)/COPYRIGHT ResidualVM/COPYRIGHT.txt
+	cp $(srcdir)/KNOWN_BUGS ResidualVM/KNOWN_BUGS.txt
 	cp $(srcdir)/NEWS ResidualVM/NEWS.txt
 	cp $(srcdir)/doc/QuickStart ResidualVM/QuickStart.txt
 	cp $(srcdir)/README ResidualVM/README.txt

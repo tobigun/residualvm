@@ -4,25 +4,26 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
 
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
 
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  */
 
 #include "common/endian.h"
 #include "common/stream.h"
 
+#include "engines/grim/grim.h"
 #include "engines/grim/lipsync.h"
 #include "engines/grim/resource.h"
 
@@ -88,9 +89,6 @@ LipSync::~LipSync() {
 int LipSync::getAnim(int pos) {
 	int frame1, frame2;
 
-	// tune a bit to prevent internal imuse drift
-	pos += 5;
-
 	for (int i = 0; i < _numEntries; i++) {
 		frame1 = _entries[i].frame;
 		if ((i + 1) < _numEntries) {
@@ -99,7 +97,7 @@ int LipSync::getAnim(int pos) {
 			frame2 = (unsigned int)-1L;
 		}
 		if ((pos >= frame1) && (pos < frame2)) {
-			//printf("frame1: %d, frame2: %d, pos: %d, i: %d, num: %d\n", frame1, frame2, pos, i, _numEntries -1);
+// 			debug("frame1: %d, frame2: %d, pos: %d, i: %d, num: %d\n", frame1, frame2, pos, i, _numEntries -1);
 			return _entries[i].anim;
 		}
 	}

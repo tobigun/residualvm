@@ -4,19 +4,19 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
 
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
 
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  */
 
@@ -75,10 +75,34 @@ bool Imuse::startSound(const char *soundName, int volGroupId, int hookId, int vo
 	Track *track = NULL;
 	int i;
 
+	// If the track is fading out bring it back to the normal running tracks
+	for (i = MAX_IMUSE_TRACKS; i < MAX_IMUSE_TRACKS + MAX_IMUSE_FADETRACKS; i++) {
+		if (!scumm_stricmp(_track[i]->soundName, soundName) && !_track[i]->toBeRemoved) {
+
+			Track *fadeTrack = _track[i];
+			track = _track[i - MAX_IMUSE_TRACKS];
+
+			if (track->used) {
+				flushTrack(track);
+				g_system->getMixer()->stopHandle(track->handle);
+			}
+
+			// Clone the settings of the given track
+			memcpy(track, fadeTrack, sizeof(Track));
+			track->trackId = i - MAX_IMUSE_TRACKS;
+			// Reset the track
+			memset(fadeTrack, 0, sizeof(Track));
+			// Mark as used for now so the track won't be reused again this frame
+			track->used = true;
+
+			return true;
+		}
+	}
+
 	// If the track is already playing then there is absolutely no
 	// reason to start it again, the existing track should be modified
 	// instead of starting a new copy of the track
-	for (i = 0; i < MAX_IMUSE_TRACKS + MAX_IMUSE_FADETRACKS; i++) {
+	for (i = 0; i < MAX_IMUSE_TRACKS; i++) {
 		// Filenames are case insensitive, see findTrack
 		if (!scumm_stricmp(_track[i]->soundName, soundName)) {
 			Debug::debug(Debug::Imuse, "Imuse::startSound(): Track '%s' already playing.", soundName);

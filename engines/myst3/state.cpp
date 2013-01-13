@@ -26,6 +26,54 @@
 
 namespace Myst3 {
 
+GameState::StateData::StateData() {
+	version = GameState::kSaveVersion;
+	gameRunning = true;
+	currentFrame = 0;
+	nextSecondsUpdate = 0;
+	secondsPlayed = 0;
+	dword_4C2C44 = 0;
+	dword_4C2C48 = 0;
+	dword_4C2C4C = 0;
+	dword_4C2C50 = 0;
+	dword_4C2C54 = 0;
+	dword_4C2C58 = 0;
+	dword_4C2C5C = 0;
+	dword_4C2C60 = 0;
+	currentNodeType = 0;
+	lookatPitch = 0;
+	lookatHeading = 0;
+	lookatFOV = 0;
+	pitchOffset = 0;
+	headingOffset = 0;
+	limitCubeCamera = 0;
+	minPitch = 0;
+	maxPitch = 0;
+	minHeading = 0;
+	maxHeading = 0;
+	dword_4C2C90 = 0;
+
+	for (uint i = 0; i < 2048; i++)
+		vars[i] = 0;
+
+	vars[0] = 0;
+	vars[1] = 1;
+
+	inventoryCount = 0;
+
+	for (uint i = 0; i < 7; i++)
+		inventoryList[i] = 0;
+
+	for (uint i = 0; i < 256; i++)
+		zipDestinations[i] = 0;
+
+	saveDay = 0;
+	saveMonth = 0;
+	saveYear = 0;
+	saveHour = 0;
+	saveMinute = 0;
+}
+
 GameState::GameState(Myst3Engine *vm):
 	_vm(vm) {
 
@@ -63,6 +111,15 @@ GameState::GameState(Myst3Engine *vm):
 	VAR(90, InputSpacePressed, false)
 
 	VAR(92, HotspotActiveRect, false)
+
+	VAR(93, WaterEffectPaused, true)
+	VAR(94, WaterEffectActive, true)
+	VAR(95, WaterEffectSpeed, true)
+	VAR(96, WaterEffectAttenuation, true)
+	VAR(97, WaterEffectFrequency, true)
+	VAR(98, WaterEffectAmpl, true)
+	VAR(99, WaterEffectMaxStep, true)
+	VAR(100, WaterEffectAmplOffset, true)
 
 	VAR(115, SunspotIntensity, false)
 	VAR(116, SunspotColor, false)
@@ -114,6 +171,10 @@ GameState::GameState(Myst3Engine *vm):
 
 	VAR(178, MovieUseBackground, false)
 	VAR(179, CameraSkipAnimation, true)
+	VAR(180, MovieAmbiantScriptStartFrame, false)
+	VAR(181, MovieAmbiantScript, false)
+	VAR(182, MovieScriptStartFrame, false)
+	VAR(183, MovieScript, false)
 
 	VAR(185, CameraMoveSpeed, false)
 
@@ -205,64 +266,105 @@ GameState::GameState(Myst3Engine *vm):
 GameState::~GameState() {
 }
 
-void GameState::syncWithSaveGame(Common::Serializer &s) {
+void GameState::syncFloat(Common::Serializer &s, float &val,
+		Common::Serializer::Version minVersion, Common::Serializer::Version maxVersion) {
+	static const float precision = 10000.0;
+
+	if (s.isLoading()) {
+		int32 saved;
+		s.syncAsSint32LE(saved, minVersion, maxVersion);
+		val = saved / precision;
+	} else {
+		int32 toSave = static_cast<int32>(val * precision);
+		s.syncAsSint32LE(toSave, minVersion, maxVersion);
+	}
+}
+
+void GameState::StateData::syncWithSaveGame(Common::Serializer &s) {
 	if (!s.syncVersion(kSaveVersion))
-		error("This savegame (v%d) is too recent (max %d) please get a newer version of Residual", s.getVersion(), kSaveVersion);
+		error("This savegame (v%d) is too recent (max %d) please get a newer version of ResidualVM", s.getVersion(), kSaveVersion);
 
-	s.syncAsUint32LE(_data.gameRunning);
-	s.syncAsUint32LE(_data.currentFrame);
-	s.syncAsUint32LE(_data.nextSecondsUpdate);
-	s.syncAsUint32LE(_data.secondsPlayed);
-	s.syncAsUint32LE(_data.dword_4C2C44);
-	s.syncAsUint32LE(_data.dword_4C2C48);
-	s.syncAsUint32LE(_data.dword_4C2C4C);
-	s.syncAsUint32LE(_data.dword_4C2C50);
-	s.syncAsUint32LE(_data.dword_4C2C54);
-	s.syncAsUint32LE(_data.dword_4C2C58);
-	s.syncAsUint32LE(_data.dword_4C2C5C);
-	s.syncAsUint32LE(_data.dword_4C2C60);
-	s.syncAsUint32LE(_data.currentNodeType);
+	s.syncAsUint32LE(gameRunning);
+	s.syncAsUint32LE(currentFrame);
+	s.syncAsUint32LE(nextSecondsUpdate);
+	s.syncAsUint32LE(secondsPlayed);
+	s.syncAsUint32LE(dword_4C2C44);
+	s.syncAsUint32LE(dword_4C2C48);
+	s.syncAsUint32LE(dword_4C2C4C);
+	s.syncAsUint32LE(dword_4C2C50);
+	s.syncAsUint32LE(dword_4C2C54);
+	s.syncAsUint32LE(dword_4C2C58);
+	s.syncAsUint32LE(dword_4C2C5C);
+	s.syncAsUint32LE(dword_4C2C60);
+	s.syncAsUint32LE(currentNodeType);
 
-	// FIXME Syncing IEE754 data is not cross platform
-	// Increase the savegame version and save those as integers
-	s.syncBytes((byte*) &_data.lookatPitch, sizeof(float));
-	s.syncBytes((byte*) &_data.lookatHeading, sizeof(float));
-	s.syncBytes((byte*) &_data.lookatFOV, sizeof(float));
-	s.syncBytes((byte*) &_data.pitchOffset, sizeof(float));
-	s.syncBytes((byte*) &_data.headingOffset, sizeof(float));
+	// The original engine (v148) saved the raw IEE754 data,
+	// we save decimal data as fixed point instead to be achieve portability
+	if (s.getVersion() < 149) {
+		s.syncBytes((byte*) &lookatPitch, sizeof(float));
+		s.syncBytes((byte*) &lookatHeading, sizeof(float));
+		s.syncBytes((byte*) &lookatFOV, sizeof(float));
+		s.syncBytes((byte*) &pitchOffset, sizeof(float));
+		s.syncBytes((byte*) &headingOffset, sizeof(float));
+	} else {
+		syncFloat(s, lookatPitch);
+		syncFloat(s, lookatHeading);
+		syncFloat(s, lookatFOV);
+		syncFloat(s, pitchOffset);
+		syncFloat(s, headingOffset);
+	}
 
-	s.syncAsUint32LE(_data.limitCubeCamera);
-	s.syncBytes((byte*) &_data.minPitch, sizeof(float));
-	s.syncBytes((byte*) &_data.maxPitch, sizeof(float));
-	s.syncBytes((byte*) &_data.minHeading, sizeof(float));
-	s.syncBytes((byte*) &_data.maxHeading, sizeof(float));
-	s.syncAsUint32LE(_data.dword_4C2C90);
+	s.syncAsUint32LE(limitCubeCamera);
+
+	if (s.getVersion() < 149) {
+		s.syncBytes((byte*) &minPitch, sizeof(float));
+		s.syncBytes((byte*) &maxPitch, sizeof(float));
+		s.syncBytes((byte*) &minHeading, sizeof(float));
+		s.syncBytes((byte*) &maxHeading, sizeof(float));
+	} else {
+		syncFloat(s, minPitch);
+		syncFloat(s, maxPitch);
+		syncFloat(s, minHeading);
+		syncFloat(s, maxHeading);
+	}
+
+	s.syncAsUint32LE(dword_4C2C90);
 
 	for (uint i = 0; i < 2048; i++)
-		s.syncAsSint32LE(_data.vars[i]);
+		s.syncAsSint32LE(vars[i]);
 
-	s.syncAsUint32LE(_data.inventoryCount);
+	s.syncAsUint32LE(inventoryCount);
 
 	for (uint i = 0; i < 7; i++)
-		s.syncAsUint32LE(_data.inventoryList[i]);
+		s.syncAsUint32LE(inventoryList[i]);
 
 	for (uint i = 0; i < 256; i++)
-		s.syncAsByte(_data.zipDestinations[i]);
+		s.syncAsByte(zipDestinations[i]);
+
+	s.syncAsByte(saveDay, 149);
+	s.syncAsByte(saveMonth, 149);
+	s.syncAsUint16LE(saveYear, 149);
+	s.syncAsByte(saveHour, 149);
+	s.syncAsByte(saveMinute, 149);
+	s.syncString(saveDescription, 149);
+
+	if (s.isLoading()) {
+		thumbnail = Common::SharedPtr<Graphics::Surface>(new Graphics::Surface(), Graphics::SharedPtrSurfaceDeleter());
+		thumbnail->create(kThumbnailWidth, kThumbnailHeight, Graphics::PixelFormat(4, 8, 8, 8, 8, 16, 8, 0, 24));
+	}
+	assert(thumbnail && thumbnail->w == kThumbnailWidth && thumbnail->h == kThumbnailHeight);
+
+	s.syncBytes((byte *)thumbnail->pixels, kThumbnailWidth * kThumbnailHeight * 4);
 }
 
 void GameState::newGame() {
-	memset(&_data, 0, sizeof(_data));
-
-	_data.version = kSaveVersion;
-	_data.gameRunning = true;
-	_data.vars[0] = 0;
-	_data.vars[1] = 1;
+	_data = StateData();
 }
 
 bool GameState::load(const Common::String &file) {
 	Common::InSaveFile *saveFile = _vm->getSaveFileManager()->openForLoading(file);
 	Common::Serializer s = Common::Serializer(saveFile, 0);
-	syncWithSaveGame(s);
+	_data.syncWithSaveGame(s);
 	delete saveFile;
 
 	_data.gameRunning = true;
@@ -273,11 +375,31 @@ bool GameState::load(const Common::String &file) {
 bool GameState::save(Common::OutSaveFile *saveFile) {
 	Common::Serializer s = Common::Serializer(0, saveFile);
 
+	// Update save creation info
+	TimeDate t;
+	g_system->getTimeAndDate(t);
+	_data.saveYear = t.tm_year + 1900;
+	_data.saveMonth = t.tm_mon + 1;
+	_data.saveDay = t.tm_mday;
+	_data.saveHour = t.tm_hour;
+	_data.saveMinute = t.tm_min;
+
 	_data.gameRunning = false;
-	syncWithSaveGame(s);
+	_data.syncWithSaveGame(s);
 	_data.gameRunning = true;
 
 	return true;
+}
+
+Graphics::Surface *GameState::getSaveThumbnail() const {
+	return _data.thumbnail.get();
+}
+
+void GameState::setSaveThumbnail(Graphics::Surface *thumb) {
+	if (_data.thumbnail.get() == thumb)
+		return;
+
+	_data.thumbnail = Common::SharedPtr<Graphics::Surface>(thumb, Graphics::SharedPtrSurfaceDeleter());
 }
 
 Common::Array<uint16> GameState::getInventory() {

@@ -4,19 +4,19 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
 
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
 
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  */
 
@@ -83,24 +83,24 @@ void EMICostume::load(Common::SeekableReadStream *data) {
 					parentID = -2;
 				prevComponent = _prevCostume->getComponent(0);
 				// Make sure that the component is valid
-				if (!prevComponent->isComponentType('M','M','D','L'))
+				if (!prevComponent->isComponentType('M', 'M', 'D', 'L'))
 					prevComponent = NULL;
 			}
 			// Actually load the appropriate component
-			Component *component = loadComponent(parentID < 0 ? NULL : components[parentID], parentID, componentName, prevComponent);
+			Component *component = loadEMIComponent(parentID < 0 ? NULL : components[parentID], parentID, componentName, prevComponent);
 			if (component) {
 				component->setCostume(this);
 				component->init();
 
 				if (strcmp(_chores[i]->getName(), "wear_default") == 0) {
-					if (component->isComponentType('m','e','s','h')) {
+					if (component->isComponentType('m', 'e', 's', 'h')) {
 						_emiMesh = static_cast<EMIMeshComponent *>(component);
 						if (_emiSkel) {
 							_emiMesh->_obj->setSkeleton(_emiSkel->_obj);
 						}
 						for (unsigned int z = 0; z < _emiMesh->_obj->_numTextures; ++z)
 							_materials.push_back(_emiMesh->_obj->_mats[z]);
-					} else if (component->isComponentType('s','k','e','l')) {
+					} else if (component->isComponentType('s', 'k', 'e', 'l')) {
 						_emiSkel = static_cast<EMISkelComponent *>(component);
 						if (_emiMesh) {
 							_emiMesh->_obj->setSkeleton(_emiSkel->_obj);
@@ -123,10 +123,15 @@ void EMICostume::load(Common::SeekableReadStream *data) {
 				data->read(&time, 4);
 				data->read(&value, 4);
 				track.keys[j].time = (int)(time * 1000);
+				length = MAX(length, time * 1000);
 				track.keys[j].value = (int)value;
 			}
 			delete[] componentName;
 		}
+
+		// Some chores report duration 1000 while they have components with
+		// keyframes after 1000. See elaine_wedding/take_contract, for example.
+		_chores[i]->_length = ceil(length);
 	}
 
 	_numComponents = components.size();
@@ -139,7 +144,7 @@ void EMICostume::load(Common::SeekableReadStream *data) {
 	}
 }
 
-Component *EMICostume::loadComponent(Component *parent, int parentID, const char *name, Component *prevComponent) {
+Component *EMICostume::loadEMIComponent(Component *parent, int parentID, const char *name, Component *prevComponent) {
 	// some have an exclimation mark, this could mean something.
 	// for now, return 0 otherwise it will just crash in some other part.
 	//return 0;
@@ -156,31 +161,33 @@ Component *EMICostume::loadComponent(Component *parent, int parentID, const char
 
 	name += 4;
 
-	if (tag == MKTAG('m','e','s','h')) {
+	if (tag == MKTAG('m', 'e', 's', 'h')) {
 		//Debug::warning(Debug::Costumes, "Actor::loadComponentEMI Implement MESH-handling: %s" , name);
 		return new EMIMeshComponent(parent, parentID, name, prevComponent, tag);
-	} else if (tag == MKTAG('s','k','e','l')) {
+	} else if (tag == MKTAG('s', 'k', 'e', 'l')) {
 		//Debug::warning(Debug::Costumes, "Actor::loadComponentEMI Implement SKEL-handling: %s" , name);
 		return new EMISkelComponent(parent, parentID, name, prevComponent, tag);
-	} else if (tag == MKTAG('t','e','x','i')) {
+	} else if (tag == MKTAG('t', 'e', 'x', 'i')) {
 //    Debug::warning(Debug::Costumes, "Actor::loadComponentEMI Implement TEXI-handling: %s" , name);
 		return new EMITexiComponent(parent, parentID, name, prevComponent, tag);
-	} else if (tag == MKTAG('a','n','i','m')) {
+	} else if (tag == MKTAG('a', 'n', 'i', 'm')) {
 		//Debug::warning(Debug::Costumes, "Actor::loadComponentEMI Implement ANIM-handling: %s" , name);
 		return new EMIAnimComponent(parent, parentID, name, prevComponent, tag);
-	} else if (tag == MKTAG('l','u','a','c')) {
+	} else if (tag == MKTAG('l', 'u', 'a', 'c')) {
 //    Debug::warning(Debug::Costumes, "Actor::loadComponentEMI Implement LUAC-handling: %s" , name);
 		return new EMILuaCodeComponent(parent, parentID, name, prevComponent, tag);
-	} else if (tag == MKTAG('l','u','a','v')) {
+	} else if (tag == MKTAG('l', 'u', 'a', 'v')) {
 //    Debug::warning(Debug::Costumes, "Actor::loadComponentEMI Implement LUAV-handling: %s" , name);
 		return new EMILuaVarComponent(parent, parentID, name, prevComponent, tag);
-	} else if (tag == MKTAG('s','p','r','t')) {
+	} else if (tag == MKTAG('s', 'p', 'r', 't')) {
 		//Debug::warning(Debug::Costumes, "Actor::loadComponentEMI Implement SPRT-handling: %s" , name);
 		return new EMISpriteComponent(parent, parentID, name, prevComponent, tag);
-	} else if (tag == MKTAG('s','h','a','d')) {
+	} else if (tag == MKTAG('s', 'h', 'a', 'd')) {
 		Debug::warning(Debug::Costumes, "Actor::loadComponentEMI Implement SHAD-handling: %s" , name);
-	} else if (tag == MKTAG('a','w','g','t')) {
+	} else if (tag == MKTAG('a', 'w', 'g', 't')) {
 		Debug::warning(Debug::Costumes, "Actor::loadComponentEMI Implement AWGT-handling: %s" , name);
+	} else if (tag == MKTAG('s', 'n', 'd', '2')) {
+		// ignore, this is a leftover from an earlier engine.
 	} else {
 		error("Actor::loadComponentEMI missing tag: %s for %s", name, type);
 	}
@@ -192,16 +199,19 @@ Component *EMICostume::loadComponent(Component *parent, int parentID, const char
 }
 
 void EMICostume::draw() {
+	bool drewMesh = false;
 	for (Common::List<Chore*>::iterator it = _playingChores.begin(); it != _playingChores.end(); ++it) {
 		Chore *c = (*it);
 		for (int i = 0; i < c->_numTracks; ++i) {
 			if (c->_tracks[i].component) {
 				c->_tracks[i].component->draw();
+				if (c->_tracks[i].component->isComponentType('m', 'e', 's', 'h'))
+					drewMesh = true;
 			}
 		}
 	}
 
-	if (_emiMesh) {
+	if (_emiMesh && !drewMesh) {
 		_emiMesh->draw();
 	}
 }

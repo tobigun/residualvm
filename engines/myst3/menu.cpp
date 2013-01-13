@@ -39,15 +39,9 @@ Menu::Menu(Myst3Engine *vm) :
 	_saveLoadSpotItem(0),
 	_saveDrawCaret(false),
 	_saveCaretCounter(0) {
-	_saveThumb = new Graphics::Surface();
-	_saveThumb->create(240, 135, Graphics::PixelFormat(3, 8, 8, 8, 0, 16, 8, 0, 0));
 }
 
 Menu::~Menu() {
-	if (_saveThumb) {
-		_saveThumb->free();
-		delete _saveThumb;
-	}
 }
 
 void Menu::updateMainMenu(uint16 action) {
@@ -139,7 +133,8 @@ void Menu::goToNode(uint16 node) {
 
 		// ... and capture the screen
 		Graphics::Surface *big = _vm->_gfx->getScreenshot();
-		createThumbnail(big, _saveThumb);
+		Graphics::Surface *thumb = createThumbnail(big);
+		_vm->_state->setSaveThumbnail(thumb);
 		big->free();
 		delete big;
 	}
@@ -175,7 +170,9 @@ Dialog::Dialog(Myst3Engine *vm, uint id):
 
 	// Load the movie
 	_movieStream = movieDesc->getData();
-	_bink.loadStream(_movieStream, Graphics::PixelFormat(4, 8, 8, 8, 8, 0, 8, 16, 24));
+	_bink.setDefaultHighColorFormat(Graphics::PixelFormat(4, 8, 8, 8, 8, 0, 8, 16, 24));
+	_bink.loadStream(_movieStream);
+	_bink.start();
 
 	const Graphics::Surface *frame = _bink.decodeNextFrame();
 	_texture = _vm->_gfx->createTexture(frame);
@@ -214,7 +211,7 @@ int16 Dialog::update() {
 	while (_vm->getEventManager()->pollEvent(event)) {
 		if (event.type == Common::EVENT_MOUSEMOVE) {
 			// Compute local mouse coordinates
-			_vm->_cursor->updatePosition(event.relMouse);
+			_vm->_cursor->updatePosition(event.mouse);
 			Common::Rect position = getPosition();
 			Common::Point localMouse = _vm->_cursor->getPosition();
 			localMouse.x -= position.left;
@@ -302,13 +299,15 @@ void Menu::loadMenuSelect(uint16 item) {
 	// Extract the age to load from the savegame
 	GameState *gameState = new GameState(_vm);
 	gameState->load(filename);
-	_saveLoadAgeName = getAgeLabel(gameState);
-	delete gameState;
 
-	// Extract the thumbnail from the save
-	Common::InSaveFile *save = _vm->getSaveFileManager()->openForLoading(filename);
-	saveGameReadThumbnail(save);
-	delete save;
+	// Update the age name
+	_saveLoadAgeName = getAgeLabel(gameState);
+
+	// Update the save thumbnail
+	if (_saveLoadSpotItem)
+		_saveLoadSpotItem->updateData(gameState->getSaveThumbnail());
+
+	delete gameState;
 }
 
 void Menu::loadMenuLoad() {
@@ -344,8 +343,9 @@ void Menu::saveMenuOpen() {
 	saveLoadUpdateVars();
 
 	// Update the thumbnail to display
-	if (_saveLoadSpotItem && _saveThumb)
-		_saveLoadSpotItem->updateData((uint8 *)_saveThumb->pixels);
+	Graphics::Surface *saveThumb = _vm->_state->getSaveThumbnail();
+	if (_saveLoadSpotItem && saveThumb)
+		_saveLoadSpotItem->updateData(saveThumb);
 }
 
 void Menu::saveMenuSelect(uint16 item) {
@@ -389,8 +389,8 @@ void Menu::saveMenuSave() {
 
 	// Save the state and the thumbnail
 	Common::OutSaveFile *save = _vm->getSaveFileManager()->openForSaving(fileName);
+	_vm->_state->setSaveDescription(_saveName);
 	_vm->_state->save(save);
-	saveGameWriteThumbnail(save);
 	delete save;
 
 	// Do next action
@@ -535,44 +535,6 @@ Common::String Menu::getAgeLabel(GameState *gameState) {
 	return label;
 }
 
-void Menu::saveGameReadThumbnail(Common::InSaveFile *save) {
-	// Start of thumbnail data
-	save->seek(8580);
-
-	uint8 *thumbnail = new uint8[kMiniatureSize * 3];
-
-	// The spot item expects RGB data instead of RGBA
-	uint8 *ptr = thumbnail;
-	for (uint i = 0; i < kMiniatureSize; i++) {
-		uint32 rgba = save->readUint32LE();
-		uint8 a, r, g, b;
-		Graphics::colorToARGB< Graphics::ColorMasks<8888> >(rgba, a, r, g, b);
-		*ptr++ = r;
-		*ptr++ = g;
-		*ptr++ = b;
-	}
-
-	if (_saveLoadSpotItem)
-		_saveLoadSpotItem->updateData(thumbnail);
-
-	delete[] thumbnail;
-}
-
-void Menu::saveGameWriteThumbnail(Common::OutSaveFile *save) {
-	// The file expects ARGB data instead of RGB
-	uint8 *src = (uint8 *)_saveThumb->pixels;
-	for (uint i = 0; i < kMiniatureSize; i++) {
-		uint8 r, g, b;
-		r = *src++;
-		g = *src++;
-		b = *src++;
-		save->writeByte(b);
-		save->writeByte(g);
-		save->writeByte(r);
-		save->writeByte(0xFF);   // Alpha
-	}
-}
-
 Common::String Menu::prepareSaveNameForDisplay(const Common::String &name) {
 	Common::String display = name;
 	display.toUppercase();
@@ -589,26 +551,32 @@ Common::String Menu::prepareSaveNameForDisplay(const Common::String &name) {
 	return display;
 }
 
-void Menu::createThumbnail(Graphics::Surface *big, Graphics::Surface *small) {
-	assert(big->format.bytesPerPixel == 3
-			&& small->format.bytesPerPixel == 3);
+Graphics::Surface *Menu::createThumbnail(Graphics::Surface *big) {
+	assert(big->format.bytesPerPixel == 4);
+
+	Graphics::Surface *small = new Graphics::Surface();
+	small->create(GameState::kThumbnailWidth, GameState::kThumbnailHeight,
+			Graphics::PixelFormat(4, 8, 8, 8, 8, 0, 8, 16, 24));
 
 	uint bigHeight = big->h - Renderer::kTopBorderHeight - Renderer::kBottomBorderHeight;
 	uint bigYOffset = Renderer::kBottomBorderHeight;
 
-	uint8 *dst = (uint8 *)small->pixels;
+	uint32 *dst = (uint32 *)small->pixels;
 	for (uint i = 0; i < small->h; i++) {
 		for (uint j = 0; j < small->w; j++) {
 			uint32 srcX = big->w * j / small->w;
 			uint32 srcY = bigYOffset + bigHeight - bigHeight * i / small->h;
-			uint8 *src = (uint8 *)big->getBasePtr(srcX, srcY - 1);
+			uint32 *src = (uint32 *)big->getBasePtr(srcX, srcY - 1);
 
-			// Copy RGB bytes
-			*dst++ = *src++;
-			*dst++ = *src++;
-			*dst++ = *src++;
+			// Copy RGBA pixel
+			*dst++ = *src;
 		}
 	}
+
+	// The thumbnail is stored on disk in BGRA
+	small->convertToInPlace(Graphics::PixelFormat(4, 8, 8, 8, 8, 16, 8, 0, 24));
+
+	return small;
 }
 
 } /* namespace Myst3 */

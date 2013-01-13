@@ -4,19 +4,19 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
 
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
 
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  */
 
@@ -60,7 +60,7 @@ void Lua_V1::GetPointSector() {
 	Sector *result = g_grim->getCurrSet()->findPointSector(point, sectorType);
 	if (result) {
 		lua_pushnumber(result->getSectorId());
-		lua_pushstring(result->getName());
+		lua_pushstring(result->getName().c_str());
 		lua_pushnumber(result->getType());
 	} else {
 		lua_pushnil();
@@ -82,7 +82,7 @@ void Lua_V1::GetActorSector() {
 	Sector *result = g_grim->getCurrSet()->findPointSector(pos, sectorType);
 	if (result) {
 		lua_pushnumber(result->getSectorId());
-		lua_pushstring(result->getName());
+		lua_pushstring(result->getName().c_str());
 		lua_pushnumber(result->getType());
 	} else {
 		lua_pushnil();
@@ -102,10 +102,10 @@ void Lua_V1::IsActorInSector() {
 	Actor *actor = getactor(actorObj);
 	const char *name = lua_getstring(nameObj);
 
-	Sector *sector = g_grim->getCurrSet()->getSector(name, actor->getPos());
+	Sector *sector = g_grim->getCurrSet()->getSectorBySubstring(name, actor->getPos());
 	if (sector) {
 		lua_pushnumber(sector->getSectorId());
-		lua_pushstring(sector->getName());
+		lua_pushstring(sector->getName().c_str());
 		lua_pushnumber(sector->getType());
 	} else {
 		lua_pushnil();
@@ -129,11 +129,11 @@ void Lua_V1::IsPointInSector() {
 	float z = lua_getnumber(zObj);
 	Math::Vector3d pos(x, y, z);
 
-	Sector *sector = g_grim->getCurrSet()->getSector(name);
+	Sector *sector = g_grim->getCurrSet()->getSectorBySubstring(name);
 
 	if (sector && sector->isPointInSector(pos)) {
 		lua_pushnumber(sector->getSectorId());
-		lua_pushstring(sector->getName());
+		lua_pushstring(sector->getName().c_str());
 		lua_pushnumber(sector->getType());
 	} else {
 		lua_pushnil();
@@ -155,7 +155,7 @@ void Lua_V1::GetSectorOppositeEdge() {
 	Actor *actor = getactor(actorObj);
 	const char *name = lua_getstring(nameObj);
 
-	Sector *sector = g_grim->getCurrSet()->getSector(name);
+	Sector *sector = g_grim->getCurrSet()->getSectorBySubstring(name);
 	if (sector) {
 		if (sector->getNumVertices() != 4)
 			warning("GetSectorOppositeEdge(): cheat box with %d (!= 4) edges!", sector->getNumVertices());
@@ -193,7 +193,9 @@ void Lua_V1::MakeSectorActive() {
 
 	if (lua_isstring(sectorObj)) {
 		const char *name = lua_getstring(sectorObj);
-		Sector *sector = g_grim->getCurrSet()->getSector(name);
+		// a search by name here is needed for set bv, since it calls MakeSectorActive with sectors
+		// "bw_gone" and "bw_gone2", and a substring search would return "bw_gone2" for both.
+		Sector *sector = g_grim->getCurrSet()->getSectorByName(name);
 		if (sector) {
 			sector->setVisible(visible);
 		}
@@ -274,6 +276,22 @@ void Lua_V1::GetCurrentSetup() {
 		return;
 	}
 	lua_pushnumber(scene->getSetup());
+}
+
+void Lua_V1::PreviousSetup() {
+	int num = g_grim->getCurrSet()->getSetup() - 1;
+	if (num < 0) {
+		num = g_grim->getCurrSet()->getNumSetups() - 1;
+	}
+	g_grim->makeCurrentSetup(num);
+}
+
+void Lua_V1::NextSetup() {
+	int num = g_grim->getCurrSet()->getSetup() + 1;
+	if (num >= g_grim->getCurrSet()->getNumSetups()) {
+		num = 0;
+	}
+	g_grim->makeCurrentSetup(num);
 }
 
 /* This function makes the walkplane sectors smaller by the

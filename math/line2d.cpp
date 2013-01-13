@@ -4,19 +4,19 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  */
 
@@ -32,8 +32,13 @@ Line2d::Line2d() :
 
 Line2d::Line2d(const Vector2d &direction, const Vector2d &point) {
 	Vector2d d = direction;
-	_a = d.getY() / d.getX();
-	_b = -1;
+	if (fabsf(d.getX()) > 0.0001f) {
+		_a = d.getY() / d.getX();
+		_b = -1;
+	} else {
+		_a = 1;
+		_b = 0;
+	}
 
 	if (_b == 0) {
 		_c = -point.getX();
@@ -76,23 +81,18 @@ bool Line2d::intersectsLine(const Line2d &line, Vector2d *pos) const {
 
 	float x, y;
 
-	if (d * b - a * e == 0 || a == 0) {
+	const float det = a * e - b * d;
+
+	if (fabsf(det) < 0.0001f) {
 		return false;
 	}
 
-	if (!pos) {
-		return true;
-	}
+	x = (-c * e + b * f) / det;
+	y = (-a * f + c * d) / det;
 
-	/*
-	 * {ax + by + c = 0 -> x = -(by + c) / a
-	 * {dx + ey + f = 0 -> y = (-dc + af) / (db - ae)
-	 */
+	if (pos)
+		*pos = Vector2d(x, y);
 
-	y = (-d * c + a * f) / (d * b - a * e);
-	x = -(b * y + c) / a;
-
-	*pos = Vector2d(x, y);
 	return true;
 }
 
@@ -103,6 +103,16 @@ bool Line2d::containsPoint(const Vector2d &point) const {
 
 float Line2d::getYatX(float x) const {
 	return -(_a * x + _c) / _b;
+}
+
+Common::Debug &operator<<(Common::Debug dbg, const Math::Line2d &line) {
+	if (fabsf(line._a) < 0.0001f) {
+		dbg.nospace() << "Line2d: <y = " << (-line._a / line._b) << " * x + " << -line._c / line._b << ">";
+	} else {
+		dbg.nospace() << "Line2d: <x = " << (-line._b / line._a) << " * y + " << -line._c / line._a << ">";
+	}
+
+	return dbg.space();
 }
 
 

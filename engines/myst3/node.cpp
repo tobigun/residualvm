@@ -21,7 +21,6 @@
  */
 
 #include "engines/myst3/node.h"
-#include "engines/myst3/menu.h"
 #include "engines/myst3/myst3.h"
 #include "engines/myst3/state.h"
 #include "engines/myst3/subtitles.h"
@@ -29,27 +28,10 @@
 #include "common/debug.h"
 #include "common/rect.h"
 
-#include "graphics/conversion.h"
-
 namespace Myst3 {
 
-void Face::setTextureFromJPEG(Graphics::JPEGDecoder *jpeg) {
-	_bitmap = new Graphics::Surface();
-	_bitmap->create(jpeg->getComponent(1)->w, jpeg->getComponent(1)->h, Graphics::PixelFormat(3, 8, 8, 8, 0, 16, 8, 0, 0));
-
-	const byte *y = (const byte *)jpeg->getComponent(1)->getBasePtr(0, 0);
-	const byte *u = (const byte *)jpeg->getComponent(2)->getBasePtr(0, 0);
-	const byte *v = (const byte *)jpeg->getComponent(3)->getBasePtr(0, 0);
-	
-	byte *ptr = (byte *)_bitmap->getBasePtr(0, 0);
-	for (int i = 0; i < _bitmap->w * _bitmap->h; i++) {
-		byte r, g, b;
-		Graphics::YUV2RGB(*y++, *u++, *v++, r, g, b);
-		*ptr++ = r;
-		*ptr++ = g;
-		*ptr++ = b;
-	}
-
+void Face::setTextureFromJPEG(const DirectorySubEntry *jpegDesc) {
+	_bitmap = Myst3Engine::decodeJpeg(jpegDesc);
 	_texture = _vm->_gfx->createTexture(_bitmap);
 }
 
@@ -83,7 +65,7 @@ Node::Node(Myst3Engine *vm, uint16 id) :
 		_faces[i] = 0;
 }
 
-void Node::dumpFaceMask(uint16 index, int face) {
+bool Node::dumpFaceMask(uint16 index, int face, DirectorySubEntry::ResourceType type) {
 	static const int32 kMaskSize = 640 * 640;
 
 	byte *mask = new byte[kMaskSize];
@@ -91,10 +73,10 @@ void Node::dumpFaceMask(uint16 index, int face) {
 	uint32 headerOffset = 0;
 	uint32 dataOffset = 0;
 
-	const DirectorySubEntry *maskDesc = _vm->getFileDescription(0, index, face, DirectorySubEntry::kFaceMask);
+	const DirectorySubEntry *maskDesc = _vm->getFileDescription(0, index, face, type);
 
 	if (!maskDesc)
-		return;
+		return false;
 
 	Common::MemoryReadStream *maskStream = maskDesc->getData();
 
@@ -127,10 +109,12 @@ void Node::dumpFaceMask(uint16 index, int face) {
 	delete maskStream;
 
 	Common::DumpFile outFile;
-	outFile.open("dump/1-1.masku");
+	outFile.open(Common::String::format("dump/%d-%d.masku_%d", index, face, type));
 	outFile.write(mask, kMaskSize);
 	outFile.close();
 	delete[] mask;
+
+	return true;
 }
 
 Node::~Node() {
@@ -154,10 +138,10 @@ void Node::loadSpotItem(uint16 id, uint16 condition, bool fade) {
 	spotItem->setFadeVar(abs(condition));
 
 	for (int i = 0; i < 6; i++) {
-		const DirectorySubEntry *jpegDesc = _vm->getFileDescription(0, id, i + 1, DirectorySubEntry::kSpotItem);
+		const DirectorySubEntry *jpegDesc = _vm->getFileDescription(0, id, i + 1, DirectorySubEntry::kLocalizedSpotItem);
 
 		if (!jpegDesc)
-			jpegDesc = _vm->getFileDescription(0, id, i + 1, DirectorySubEntry::kMenuSpotItem);
+			jpegDesc = _vm->getFileDescription(0, id, i + 1, DirectorySubEntry::kSpotItem);
 
 		if (!jpegDesc) continue;
 
@@ -166,15 +150,7 @@ void Node::loadSpotItem(uint16 id, uint16 condition, bool fade) {
 				jpegDesc->getSpotItemData().u,
 				jpegDesc->getSpotItemData().v);
 
-		Common::MemoryReadStream *jpegStream = jpegDesc->getData();
-
-		Graphics::JPEGDecoder jpeg;
-		if (!jpeg.loadStream(*jpegStream))
-			error("Could not decode Myst III JPEG");
-		
-		spotItemFace->loadData(&jpeg);
-
-		delete jpegStream;
+		spotItemFace->loadData(jpegDesc);
 
 		spotItem->addFace(spotItemFace);
 	}
@@ -182,7 +158,7 @@ void Node::loadSpotItem(uint16 id, uint16 condition, bool fade) {
 	_spotItems.push_back(spotItem);
 }
 
-void Node::loadMenuSpotItem(uint16 id, uint16 condition, const Common::Rect &rect) {
+SpotItemFace *Node::loadMenuSpotItem(uint16 condition, const Common::Rect &rect) {
 	SpotItem *spotItem = new SpotItem(_vm);
 
 	spotItem->setCondition(condition);
@@ -192,12 +168,11 @@ void Node::loadMenuSpotItem(uint16 id, uint16 condition, const Common::Rect &rec
 	SpotItemFace *spotItemFace = new SpotItemFace(_faces[0], rect.left, rect.top);
 	spotItemFace->initBlack(rect.width(), rect.height());
 
-	if (id == 1)
-		_vm->_menu->setSaveLoadSpotItem(spotItemFace);
-
 	spotItem->addFace(spotItemFace);
 
 	_spotItems.push_back(spotItem);
+
+	return spotItemFace;
 }
 
 void Node::loadSubtitles(uint32 id) {
@@ -296,38 +271,26 @@ SpotItemFace::~SpotItemFace() {
 
 void SpotItemFace::initBlack(uint16 width, uint16 height) {
 	_bitmap = new Graphics::Surface();
-	_bitmap->create(width, height, Graphics::PixelFormat(3, 8, 8, 8, 0, 16, 8, 0, 0));
+	_bitmap->create(width, height, Graphics::PixelFormat(4, 8, 8, 8, 8, 0, 8, 16, 24));
 
 	initNotDrawn(width, height);
 }
 
-void SpotItemFace::loadData(Graphics::JPEGDecoder *jpeg) {
+void SpotItemFace::loadData(const DirectorySubEntry *jpegDesc) {
 	// Convert active SpotItem image to raw data
-	_bitmap = new Graphics::Surface();
-	_bitmap->create(jpeg->getComponent(1)->w, jpeg->getComponent(1)->h, Graphics::PixelFormat(3, 8, 8, 8, 0, 16, 8, 0, 0));
-
-	for (int i = 0; i < _bitmap->h; i++) {
-		const byte *y = (const byte *)jpeg->getComponent(1)->getBasePtr(0, i);
-		const byte *u = (const byte *)jpeg->getComponent(2)->getBasePtr(0, i);
-		const byte *v = (const byte *)jpeg->getComponent(3)->getBasePtr(0, i);
-
-		byte *ptr = (byte *)_bitmap->getBasePtr(0, i);
-
-		for (int j = 0; j < _bitmap->w; j++) {
-			byte r, g, b;
-			Graphics::YUV2RGB(*y++, *u++, *v++, r, g, b);
-			*ptr++ = r;
-			*ptr++ = g;
-			*ptr++ = b;
-		}
-	}
+	_bitmap = Myst3Engine::decodeJpeg(jpegDesc);
 
 	initNotDrawn(_bitmap->w, _bitmap->h);
 }
 
-void SpotItemFace::updateData(const uint8 *data) {
-	assert(_bitmap && data);
-	memcpy(_bitmap->pixels, data, _bitmap->pitch * _bitmap->h);
+void SpotItemFace::updateData(const Graphics::Surface *surface) {
+	assert(_bitmap && surface);
+
+	_bitmap->free();
+	_bitmap->copyFrom(*surface);
+
+	// Ensure the pixel format is correct
+	_bitmap->convertToInPlace(Graphics::PixelFormat(4, 8, 8, 8, 8, 0, 8, 16, 24));
 
 	_drawn = false;
 }
@@ -341,11 +304,11 @@ void SpotItemFace::clear() {
 void SpotItemFace::initNotDrawn(uint16 width, uint16 height) {
 	// Copy not drawn SpotItem image from face
 	_notDrawnBitmap = new Graphics::Surface();
-	_notDrawnBitmap->create(width, height, Graphics::PixelFormat(3, 8, 8, 8, 0, 16, 8, 0, 0));
+	_notDrawnBitmap->create(width, height, Graphics::PixelFormat(4, 8, 8, 8, 8, 0, 8, 16, 24));
 
 	for (uint i = 0; i < height; i++) {
 		memcpy(_notDrawnBitmap->getBasePtr(0, i),
-				_face->_bitmap->getBasePtr(_posX, _posY + i), width * 3);
+				_face->_bitmap->getBasePtr(_posX, _posY + i), width * 4);
 	}
 }
 
@@ -353,7 +316,7 @@ void SpotItemFace::draw() {
 	for (uint i = 0; i < _bitmap->h; i++) {
 		memcpy(_face->_bitmap->getBasePtr(_posX, _posY + i),
 				_bitmap->getBasePtr(0, i),
-				_bitmap->w * 3);
+				_bitmap->w * 4);
 	}
 
 	_drawn = true;
@@ -364,7 +327,7 @@ void SpotItemFace::undraw() {
 	for (uint i = 0; i < _notDrawnBitmap->h; i++) {
 		memcpy(_face->_bitmap->getBasePtr(_posX, _posY + i),
 				_notDrawnBitmap->getBasePtr(0, i),
-				_notDrawnBitmap->w * 3);
+				_notDrawnBitmap->w * 4);
 	}
 
 	_drawn = false;
@@ -381,14 +344,17 @@ void SpotItemFace::fadeDraw() {
 			byte rND = *ptrND++;
 			byte gND = *ptrND++;
 			byte bND = *ptrND++;
+			ptrND++; // Alpha
 			byte rD = *ptrD++;
 			byte gD = *ptrD++;
 			byte bD = *ptrD++;
+			ptrD++; // Alpha
 
 			// TODO: optimize ?
 			*ptrDest++ = rND * (100 - _fadeValue) / 100 + rD * _fadeValue / 100;
 			*ptrDest++ = gND * (100 - _fadeValue) / 100 + gD * _fadeValue / 100;
 			*ptrDest++ = bND * (100 - _fadeValue) / 100 + bD * _fadeValue / 100;
+			ptrDest++; // Alpha
 		}
 	}
 

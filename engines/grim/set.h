@@ -1,22 +1,22 @@
 /* ResidualVM - A 3D game interpreter
  *
  * ResidualVM is the legal property of its developers, whose names
- * are too numerous to list here. Please refer to the COPYRIGHT
+ * are too numerous to list here. Please refer to the AUTHORS
  * file distributed with this source distribution.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
 
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
 
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  */
 
@@ -56,6 +56,7 @@ public:
 	int _maxVolume;
 
 	void drawBackground() const;
+	void drawForeground() const;
 	void drawBitmaps(ObjectState::Position stage);
 	void setupCamera() {
 		_currSetup->setupCamera();
@@ -83,13 +84,15 @@ public:
 
 	void setSetup(int num);
 	int getSetup() const { return _currSetup - _setups; }
+	inline int getNumSetups() const { return _numSetups; }
 
 	// Sector access functions
 	int getSectorCount() { return _numSectors; }
 
 	Sector *getSectorBase(int id);
-	Sector *getSector(const Common::String &name);
-	Sector *getSector(const Common::String &name, const Math::Vector3d &pos);
+	Sector *getSectorByName(const Common::String &name);
+	Sector *getSectorBySubstring(const Common::String &str);
+	Sector *getSectorBySubstring(const Common::String &str, const Math::Vector3d &pos);
 
 	Sector *findPointSector(const Math::Vector3d &p, Sector::SectorType type);
 	void findClosestSector(const Math::Vector3d &p, Sector **sect, Math::Vector3d *closestPt);
@@ -108,7 +111,7 @@ public:
 	ObjectState *findState(const Common::String &filename);
 
 	struct Setup {		// Camera setup data
-		void load(TextSplitter &ts);
+		void load(Set *set, int id, TextSplitter &ts);
 		void loadBinary(Common::SeekableReadStream *data);
 		void setupCamera() const;
 		void saveState(SaveGame *savedState) const;

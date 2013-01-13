@@ -4,19 +4,19 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
 
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
 
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  */
 
@@ -27,6 +27,8 @@
 #include "engines/grim/primitives.h"
 #include "engines/grim/iris.h"
 #include "engines/grim/gfx_base.h"
+#include "engines/grim/set.h"
+#include "actor.h"
 
 #include "engines/grim/movie/movie.h"
 
@@ -107,6 +109,7 @@ void Lua_V1::StartMovie() {
 
 	bool looping = getbool(2);
 	bool result = g_movie->play(lua_getstring(name), looping, x, y);
+	g_grim->setMovieSetup();
 	if (!result)
 		g_grim->setMode(prevEngineMode);
 	pushbool(result);
@@ -491,7 +494,13 @@ void Lua_V1::EngineDisplay() {
 
 void Lua_V1::ForceRefresh() {
 	g_grim->refreshDrawMode();
-	g_driver->clearCleanBuffer();
+
+	// refreshBuffers() must clean the backing buffer but NOT the actors' buffers.
+	// In set at Glottis and Albinizod are frozen not at the same time, so this is called every time
+	// one of the two is frozen.
+	// That one gets redrawn to its buffer, but not the other one, so it must still have its buffer
+	// otherwise it will disappear.
+	g_driver->refreshBuffers();
 }
 
 void Lua_V1::RenderModeUser() {

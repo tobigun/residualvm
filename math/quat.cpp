@@ -4,19 +4,19 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  */
 
@@ -73,7 +73,7 @@ Quaternion Quaternion::slerpQuat(const Quaternion& to, const float t) {
 	return dst;
 }
 
-void Quaternion::toMatrix(Matrix4 &dst) {
+void Quaternion::toMatrix(Matrix4 &dst) const {
 	float two_xx = x() * (x() + x());
 	float two_xy = x() * (y() + y());
 	float two_xz = x() * (z() + z());
@@ -96,7 +96,7 @@ void Quaternion::toMatrix(Matrix4 &dst) {
 	dst.setData(newMat);
 }
 
-Matrix4 Quaternion::toMatrix() {
+Matrix4 Quaternion::toMatrix() const {
 	Matrix4 dst;
 	toMatrix(dst);
 	return dst;
@@ -121,5 +121,13 @@ Matrix4 Quaternion::toMatrix() {
 			cr * cp * sy - sr * sp * cy,
 			sr * cpcy - cr * spsy,
 			cr * cpcy + sr * spsy);
+	}
+	Quaternion Quaternion::operator*(const Quaternion &o) const {
+		return Quaternion(
+			w() * o.x() + x() * o.w() + y() * o.z() - z() * o.y(),
+			w() * o.y() - x() * o.z() + y() * o.w() + z() * o.x(),
+			w() * o.z() + x() * o.y() - y() * o.x() + z() * o.w(),
+			w() * o.w() - x() * o.x() - y() * o.y() - z() * o.z()
+			);
 	}
 }

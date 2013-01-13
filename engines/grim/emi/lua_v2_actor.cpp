@@ -4,19 +4,19 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
 
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
 
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  */
 
@@ -139,6 +139,20 @@ void Lua_V2::GetActorWalkRate() {
 	lua_pushnumber(actor->getWalkRate() * 0.3048780560493469);
 }
 
+void Lua_V2::LockChoreSet() {
+	lua_Object choreObj = lua_getparam(1);
+
+	const char *choreName = lua_getstring(choreObj);
+	warning("Lua_V2::LockChoreSet: chore: %s", choreName);
+}
+
+void Lua_V2::UnlockChoreSet() {
+	lua_Object choreObj = lua_getparam(1);
+
+	const char *choreName = lua_getstring(choreObj);
+	warning("Lua_V2::UnlockChoreSet: chore: %s", choreName);
+}
+
 void Lua_V2::LockChore() {
 	lua_Object nameObj = lua_getparam(1);
 	lua_Object filenameObj = lua_getparam(2);
@@ -231,6 +245,24 @@ void Lua_V2::SetChoreLooping() {
 	lua_pushnil();
 }
 
+void Lua_V2::PlayChore() {
+	lua_Object choreObj = lua_getparam(1);
+
+	if (!lua_isuserdata(choreObj) || lua_tag(choreObj) != MKTAG('C','H','O','R'))
+		return;
+	int chore = lua_getuserdata(choreObj);
+	warning("Lua_V2::PlayChore: stub, chore: %d", chore);
+}
+
+void Lua_V2::PauseChore() {
+	lua_Object choreObj = lua_getparam(1);
+
+	if (!lua_isuserdata(choreObj) || lua_tag(choreObj) != MKTAG('C','H','O','R'))
+		return;
+	int chore = lua_getuserdata(choreObj);
+	warning("Lua_V2::PauseChore: stub, chore: %d", chore);
+}
+
 void Lua_V2::StopChore() {
 	lua_Object choreObj = lua_getparam(1);
 	lua_Object timeObj = lua_getparam(2);
@@ -307,7 +339,7 @@ void Lua_V2::ActorActivateShadow() {
 	if (lua_isstring(planeObj))
 		plane = lua_getstring(planeObj);
 	warning("Lua_V2::ActorActivateShadow, actor: %s, aquality: %d, plane: %s", actor->getName().c_str(), quality, plane);
-	// FIXME: implement missing rest part of code
+	actor->activateShadow(quality);
 }
 
 void Lua_V2::ActorStopMoving() {
@@ -384,6 +416,10 @@ void Lua_V2::SetActorRestChore() {
 	if (!findCostume(costumeObj, actor, &costume))
 		return;
 
+	if (!costume) {
+		costume = actor->getCurrentCostume();
+	}
+
 	if (lua_isnil(choreObj)) {
 		chore = -1;
 	} else {
@@ -411,6 +447,10 @@ void Lua_V2::SetActorWalkChore() {
 	if (!findCostume(costumeObj, actor, &costume))
 		return;
 
+	if (!costume) {
+		costume = actor->getCurrentCostume();
+	}
+
 	if (lua_isnil(choreObj)) {
 		chore = -1;
 	} else {
@@ -437,6 +477,10 @@ void Lua_V2::SetActorTurnChores() {
 
 	if (!findCostume(costumeObj, actor, &costume))
 		return;
+
+	if (!costume) {
+		costume = actor->getCurrentCostume();
+	}
 
 	int leftChore = costume->getChoreId(lua_getstring(leftChoreObj));
 	int rightChore = costume->getChoreId(lua_getstring(rightChoreObj));
@@ -467,6 +511,10 @@ void Lua_V2::SetActorTalkChore() {
 	if (!findCostume(costumeObj, actor, &costume))
 		return;
 
+	if (!costume) {
+		costume = actor->getCurrentCostume();
+	}
+
 	if (lua_isnil(choreObj)) {
 		chore = -1;
 	} else {
@@ -493,6 +541,10 @@ void Lua_V2::SetActorMumblechore() {
 
 	if (!findCostume(costumeObj, actor, &costume))
 		return;
+
+	if (!costume) {
+		costume = actor->getCurrentCostume();
+	}
 
 	if (lua_isnil(choreObj)) {
 		chore = -1;
@@ -567,6 +619,10 @@ void Lua_V2::PlayActorChore() {
 	const char *choreName = lua_getstring(choreObj);
 	const char *costumeName = lua_getstring(costumeObj);
 	Costume *costume = actor->findCostume(costumeName);
+
+	if (!costume) {
+		costume = actor->getCurrentCostume();
+	}
 
 	if (costume == NULL) {
 		actor->pushCostume(costumeName);

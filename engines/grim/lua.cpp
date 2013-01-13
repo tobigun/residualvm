@@ -4,19 +4,19 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  */
 
@@ -387,7 +387,7 @@ void LuaBase::dummyHandler() {
 }
 
 bool LuaBase::findCostume(lua_Object costumeObj, Actor *actor, Costume **costume) {
-	*costume = actor->getCurrentCostume(); // should be root of list I think
+	*costume = NULL;
 	if (lua_isnil(costumeObj))
 		return true;
 	if (lua_isnumber(costumeObj)) {
@@ -480,7 +480,7 @@ void LuaBase::setTextObjectParams(TextObjectCommon *textObject, lua_Object table
 		if (lua_isnumber(keyObj)) {
 			float num = lua_getnumber(keyObj);
 			if (g_grim->getGameType() == GType_MONKEY4)
-				textObject->setX((int)(num * 640));
+				textObject->setX((int)(num * 320));
 			else
 				textObject->setX((int)num);
 		}
@@ -493,7 +493,7 @@ void LuaBase::setTextObjectParams(TextObjectCommon *textObject, lua_Object table
 		if (lua_isnumber(keyObj)) {
 			float num = lua_getnumber(keyObj);
 			if (g_grim->getGameType() == GType_MONKEY4)
-				textObject->setY((int)(num * 480));
+				textObject->setY((int)(num * 240));
 			else
 				textObject->setY((int)num);
 		}
@@ -518,6 +518,10 @@ void LuaBase::setTextObjectParams(TextObjectCommon *textObject, lua_Object table
 			textObject->setFont(font);
 		} else if (lua_isuserdata(keyObj) && lua_tag(keyObj) == MKTAG('F','O','N','T')) {
 			textObject->setFont(getfont(keyObj));
+		} else if (g_grim->getGameType() == GType_MONKEY4 && !textObject->getFont() && g_grim->getGamePlatform() == Common::kPlatformPS2) {
+			// HACK:
+			warning("HACK: No default font set for PS2-version, just picking one for now");
+			textObject->setFont(*Font::getPool().begin());
 		}
 	}
 

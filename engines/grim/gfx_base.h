@@ -4,19 +4,19 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
 
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
 
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  */
 
@@ -71,7 +71,8 @@ enum colorFormat {
 	BM_RGB565 = 1,    // Grim Fandango
 	BM_RGB1555 = 2,   // EMI-PS2
 	BM_RGBA = 3,      // EMI-PC (Also internal Material-format for Grim)
-	BM_BGR888 = 4	  // EMI-TGA-materials (888)
+	BM_BGR888 = 4,    // EMI-TGA-materials (888)
+	BM_BGRA = 5       // EMI-TGA-materials with alpha
 };
 class GfxBase {
 public:
@@ -113,9 +114,8 @@ public:
 	virtual void flipBuffer() = 0;
 
 	virtual void getBoundingBoxPos(const Mesh *mesh, int *x1, int *y1, int *x2, int *y2) = 0;
-	virtual void startActorDraw(const Math::Vector3d &pos, float scale, const Math::Angle &yaw,
-								const Math::Angle &pitch, const Math::Angle &roll, const bool inOverworld,
-								const float alpha) = 0;
+	virtual void startActorDraw(const Math::Vector3d &pos, float scale, const Math::Quaternion &quat,
+	                            const bool inOverworld, const float alpha) = 0;
 
 	virtual void finishActorDraw() = 0;
 	virtual void setShadow(Shadow *shadow) = 0;
@@ -169,7 +169,7 @@ public:
 	 * @see createBitmap
 	 * @see destroyBitmap
 	 */
-	virtual void drawBitmap(const Bitmap *bitmap, int x, int y) = 0;
+	virtual void drawBitmap(const Bitmap *bitmap, int x, int y, bool initialDraw = true) = 0;
 
 	/**
 	 * Deletes any internal references and representations of a bitmap
@@ -200,6 +200,7 @@ public:
 	 */
 	virtual void dimScreen() = 0;
 	virtual void dimRegion(int x, int y, int w, int h, float level) = 0;
+	virtual void setDimLevel(float dimLevel) { _dimLevel = dimLevel; }
 
 	/**
 	 * Draw a completely opaque Iris around the specified rectangle.
@@ -247,13 +248,15 @@ public:
 	void renderBitmaps(bool render);
 	void renderZBitmaps(bool render);
 
-	virtual void selectScreenBuffer() {}
-	virtual void selectCleanBuffer() {}
-	virtual void clearCleanBuffer() {}
-	virtual void drawCleanBuffer() {}
-
 	virtual void createSpecialtyTextures() = 0;
 	virtual Material *getSpecialtyTexture(int n) { return &_specialty[n]; }
+
+	virtual int genBuffer() { return 0; }
+	virtual void delBuffer(int buffer) {}
+	virtual void selectBuffer(int buffer) {}
+	virtual void clearBuffer(int buffer) {}
+	virtual void drawBuffers() {}
+	virtual void refreshBuffers() {}
 
 protected:
 	static const int _gameHeight = 480;
@@ -272,6 +275,7 @@ protected:
 	SpecialtyMaterial _specialty[8];
 	Math::Vector3d _currentPos;
 	Math::Quaternion _currentQuat;
+	float _dimLevel;
 };
 
 // Factory-like functions:
