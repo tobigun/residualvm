@@ -204,7 +204,7 @@ private:
 	GLuint _backgroundProgram;
 	GLuint _actorProgram;
 	GLuint _smushProgram;
-	GLuint _smushVAO, _smushVBO;
+	GLuint _smushVAO, _smushVBO, _quadEBO, _bigQuadEBO;
 	GLuint _textProgram;
 
 
@@ -213,6 +213,7 @@ private:
 	uint32 _smushNumTex;
 	GLuint *_smushTexIds;
 	void setupTexturedQuad();
+	void setupBigEBO();
 
 	float _fov;
 	float _nclip;
@@ -221,6 +222,8 @@ private:
 	Math::Matrix4 _mvpMatrix;
 
 	void setupTexturedCenteredQuad();
+	void setupQuadEBO();
+
 	GLuint _spriteVAO;
 	GLuint _spriteVBO;
 };
