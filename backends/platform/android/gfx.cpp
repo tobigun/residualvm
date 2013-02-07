@@ -52,7 +52,7 @@ static inline GLfixed xdiv(int numerator, int denominator) {
 
 // ResidualVM specific method
 void OSystem_Android::launcherInitSize(uint w, uint h) {
-	//setupScreen(w, h, true, false);
+	setupScreen(w, h, true, true);
 }
 
 // ResidualVM specific method
@@ -191,7 +191,7 @@ void OSystem_Android::initSurface() {
 	JNI::initSurface();
 
 	// Initialize OpenGLES context.
-	GLESTexture::initGLExtensions();
+	GLESTexture::initGL();
 
 	if (_game_texture)
 		_game_texture->reinit();
@@ -233,44 +233,14 @@ void OSystem_Android::initViewport() {
 
 	assert(JNI::haveSurface());
 
-	if (_opengl) {
-		GLCALL(glEnable(GL_DITHER));
-		GLCALL(glShadeModel(GL_SMOOTH));
-
-		GLCALL(glDisableClientState(GL_VERTEX_ARRAY));
-		GLCALL(glDisableClientState(GL_TEXTURE_COORD_ARRAY));
-
-		GLCALL(glDisable(GL_TEXTURE_2D));
-
-		GLCALL(glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST));
-	} else {
-		// Turn off anything that looks like 3D ;)
-		GLCALL(glDisable(GL_DITHER));
-		GLCALL(glShadeModel(GL_FLAT));
-
-		GLCALL(glEnableClientState(GL_VERTEX_ARRAY));
-		GLCALL(glEnableClientState(GL_TEXTURE_COORD_ARRAY));
-
-		GLCALL(glEnable(GL_TEXTURE_2D));
-
-		GLCALL(glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST));
-	}
-
 	GLCALL(glDisable(GL_CULL_FACE));
 	GLCALL(glDisable(GL_DEPTH_TEST));
-	GLCALL(glDisable(GL_LIGHTING));
-	GLCALL(glDisable(GL_FOG));
 
 	GLCALL(glEnable(GL_BLEND));
 	GLCALL(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
 
 	GLCALL(glViewport(0, 0, _egl_surface_width, _egl_surface_height));
-
-	GLCALL(glMatrixMode(GL_PROJECTION));
-	GLCALL(glLoadIdentity());
-	GLCALL(glOrthof(0, _egl_surface_width, _egl_surface_height, 0, -1, 1));
-	GLCALL(glMatrixMode(GL_MODELVIEW));
-	GLCALL(glLoadIdentity());
+	LOGD("viewport size: %dx%d", _egl_surface_width, _egl_surface_height);
 
 	clearFocusRectangle();
 }
@@ -333,7 +303,7 @@ void OSystem_Android::clearScreen(FixupType type, byte count) {
 
 	for (byte i = 0; i < count; ++i) {
 		// clear screen
-		GLCALL(glClearColorx(0, 0, 0, 1 << 16));
+		GLCALL(glClearColor(0, 0, 0, 1 << 16));
 		if (_opengl) {
 			GLCALL(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT));
 		} else {
@@ -488,7 +458,6 @@ void OSystem_Android::updateScreen() {
 	if (!JNI::haveSurface())
 		return;
 
-	if (!_opengl) {
 		if (_game_pbuf) {
 			int pitch = _game_texture->width() * _game_texture->getPixelFormat().bytesPerPixel;
 			_game_texture->updateBuffer(0, 0, _game_texture->width(), _game_texture->height(),
@@ -509,8 +478,6 @@ void OSystem_Android::updateScreen() {
 		if ((_show_overlay || _htc_fail) && !_fullscreen)
 			clearScreen(kClear);
 
-		GLCALL(glPushMatrix());
-
 		if (_shake_offset != 0 ||
 				(!_focus_rect.isEmpty() &&
 				!Common::Rect(_game_texture->width(),
@@ -527,7 +494,7 @@ void OSystem_Android::updateScreen() {
 	//	if (_show_overlay)
 	//		GLCALL(glColor4ub(0x9f, 0x9f, 0x9f, 0x9f));
 
-		if (_focus_rect.isEmpty()) {
+		if (true || _focus_rect.isEmpty()) {
 			_game_texture->drawTextureRect();
 		} else {
 			GLCALL(glPushMatrix());

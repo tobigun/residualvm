@@ -36,7 +36,7 @@
 
 class GLESBaseTexture {
 public:
-	static void initGLExtensions();
+	static void initGL();
 
 protected:
 	GLESBaseTexture(GLenum glFormat, GLenum glType,
