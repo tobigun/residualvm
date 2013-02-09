@@ -257,10 +257,10 @@ void OSystem_Android::initOverlay() {
 	// enforces the 'lowres' layout, which will be scaled back up by factor 2x,
 	// but this looks way better than the 'normal' layout scaled by some
 	// calculated factors
-	while (overlay_height > 480) {
-		overlay_width /= 2;
-		overlay_height /= 2;
-	}
+//	while (overlay_height > 480) {
+//		overlay_width /= 2;
+//		overlay_height /= 2;
+//	}
 
 	LOGI("overlay size is %ux%u", overlay_width, overlay_height);
 
@@ -478,6 +478,8 @@ void OSystem_Android::updateScreen() {
 		if ((_show_overlay || _htc_fail) && !_fullscreen)
 			clearScreen(kClear);
 
+// TODO: Do we have engines that use this?
+#if 0
 		if (_shake_offset != 0 ||
 				(!_focus_rect.isEmpty() &&
 				!Common::Rect(_game_texture->width(),
@@ -489,6 +491,7 @@ void OSystem_Android::updateScreen() {
 			// Move everything up by _shake_offset (game) pixels
 			GLCALL(glTranslatex(0, -_shake_offset << 16, 0));
 		}
+#endif
 
 	// TODO this doesnt work on those sucky drivers, do it differently
 	//	if (_show_overlay)
@@ -497,6 +500,8 @@ void OSystem_Android::updateScreen() {
 		if (true || _focus_rect.isEmpty()) {
 			_game_texture->drawTextureRect();
 		} else {
+// TODO what is this and do we have engines using it?
+#if 0
 			GLCALL(glPushMatrix());
 
 			GLCALL(glScalex(xdiv(_egl_surface_width, _focus_rect.width()),
@@ -511,6 +516,7 @@ void OSystem_Android::updateScreen() {
 			_game_texture->drawTextureRect();
 
 			GLCALL(glPopMatrix());
+#endif
 		}
 
 		int cs = _mouse_targetscale;
