@@ -20,6 +20,9 @@
  *
  */
 
+#ifndef GRAPHICS_SHADER_H
+#define GRAPHICS_SHADER_H
+
 #include "common/file.h"
 #include "common/array.h"
 
@@ -128,3 +131,5 @@ private:
 };
 
 }
+
+#endif
