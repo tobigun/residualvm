@@ -52,7 +52,7 @@ static inline GLfixed xdiv(int numerator, int denominator) {
 
 // ResidualVM specific method
 void OSystem_Android::launcherInitSize(uint w, uint h) {
-	setupScreen(w, h, true, true);
+	setupScreen(w, h, true, true, false);
 }
 
 // ResidualVM specific method
@@ -280,6 +280,8 @@ void OSystem_Android::initSize(uint width, uint height,
 #else
 	_game_texture->allocBuffer(width, height);
 #endif
+	_frame_buffer = new Graphics::FrameBuffer(_game_texture->getTextureName(), _game_texture->texWidth(), _game_texture->texHeight());
+	_frame_buffer->attach(width, height);
 
 	updateScreenRect();
 	updateEventScale();
@@ -430,15 +432,18 @@ void OSystem_Android::copyRectToScreen(const void *buf, int pitch,
 
 
 // ResidualVM specific method
-Graphics::PixelBuffer OSystem_Android::setupScreen(int screenW, int screenH, bool fullscreen, bool accel3d) {
+Graphics::PixelBuffer OSystem_Android::setupScreen(int screenW, int screenH, bool fullscreen, bool accel3d, bool isGame) {
 	_opengl = accel3d;
 	initViewport();
 
 	if (_opengl) {
 		// resize game texture
 		initSize(screenW, screenH, 0);
+		if (isGame)
+			_game_texture->setGameTexture();
 		// format is not used by the gfx_opengl driver, use fake format
 		_game_pbuf.set(Graphics::PixelFormat(), 0);
+
 	} else {
 		Graphics::PixelFormat format = GLES565Texture::pixelFormat();
 		initSize(screenW, screenH, &format);
@@ -471,6 +476,11 @@ void OSystem_Android::updateScreen() {
 			return;
 
 		_force_redraw = false;
+
+		if (_frame_buffer) {
+			_frame_buffer->detach();
+			glViewport(0,0, _egl_surface_width, _egl_surface_height);
+		}
 
 		// clear pointer leftovers in dead areas
 		// also, HTC's GLES drivers are made of fail and don't preserve the buffer
@@ -559,6 +569,9 @@ void OSystem_Android::updateScreen() {
 
 	if (!JNI::swapBuffers())
 		LOGW("swapBuffers failed: 0x%x", glGetError());
+
+	if (_frame_buffer)
+		_frame_buffer->attach(_game_texture->width(), _game_texture->height());
 }
 
 Graphics::Surface *OSystem_Android::lockScreen() {

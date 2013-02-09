@@ -117,7 +117,8 @@ GLESBaseTexture::GLESBaseTexture(GLenum glFormat, GLenum glType,
 	_all_dirty(false),
 	_dirty_rect(),
 	_pixelFormat(pixelFormat),
-	_palettePixelFormat()
+	_palettePixelFormat(),
+	_is_game_texture(false)
 {
 	GLCALL(glGenTextures(1, &_texture_name));
 }
@@ -204,6 +205,7 @@ void GLESBaseTexture::drawTexture(GLshort x, GLshort y, GLshort w, GLshort h) {
 	g_box_shader->setUniform("offsetXY", Math::Vector2d(offsetX, offsetY));
 	g_box_shader->setUniform("sizeWH", Math::Vector2d(sizeW, sizeH));
 	g_box_shader->setUniform("texcrop", Math::Vector2d(tex_width, tex_height));
+	g_box_shader->setUniform("flipY", !_is_game_texture);
 
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
