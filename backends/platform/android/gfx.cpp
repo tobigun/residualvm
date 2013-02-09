@@ -526,17 +526,13 @@ void OSystem_Android::updateScreen() {
 		}
 
 		if (_show_mouse && !_mouse_texture->isEmpty()) {
-			GLCALL(glPushMatrix());
-
 			const Common::Point &mouse = getEventManager()->getMousePos();
-
-			// Scale up ResidualVM -> OpenGL (pixel) coordinates
 			if (_show_overlay) {
-				GLCALL(glScalex(xdiv(_egl_surface_width,
-										_overlay_texture->width()),
-								xdiv(_egl_surface_height,
-										_overlay_texture->height()),
-								1 << 16));
+				_mouse_texture->drawTexture(mouse.x * cs, mouse.y * cs, _mouse_texture->width(), _mouse_texture->height());
+			}
+// TODO: Port the non-overlay code as well?
+#if 0
+			if (_show_overlay) {
 			} else {
 				const Common::Rect &r = _game_texture->getDrawRect();
 
@@ -552,19 +548,7 @@ void OSystem_Android::updateScreen() {
 								(-_mouse_hotspot.y * cs) << 16,
 								0));
 
-			// Note the extra half texel to position the mouse in
-			// the middle of the x,y square:
-			GLCALL(glTranslatex((mouse.x << 16) | 1 << 15,
-								(mouse.y << 16) | 1 << 15, 0));
-
-			GLCALL(glScalex(cs << 16, cs << 16, 1 << 16));
-
-			_mouse_texture->drawTextureOrigin();
-
-			GLCALL(glPopMatrix());
-		}
-
-		GLCALL(glPopMatrix());
+#endif
 	}
 
 	if (!JNI::swapBuffers())

@@ -51,6 +51,7 @@
 
 #include "backends/platform/android/texture.h"
 #include "backends/platform/android/android.h"
+#include "backends/platform/android/jni.h"
 
 // Supported GL extensions
 static bool npot_supported = false;
@@ -127,8 +128,6 @@ GLESBaseTexture::~GLESBaseTexture() {
 
 void GLESBaseTexture::release() {
 	if (_texture_name) {
-		LOGD("Destroying texture %u", _texture_name);
-
 		GLCALL(glDeleteTextures(1, &_texture_name));
 		_texture_name = 0;
 	}
@@ -188,19 +187,22 @@ void GLESBaseTexture::allocBuffer(GLuint w, GLuint h) {
 }
 
 void GLESBaseTexture::drawTexture(GLshort x, GLshort y, GLshort w, GLshort h) {
-	LOGD("*** Texture %p: Drawing %dx%d rect to (%d,%d)", this, w, h, x, y);
+//	LOGD("*** Texture %p: Drawing %dx%d rect to (%d,%d)", this, w, h, x, y);
 
 	assert(g_box_shader);
 	g_box_shader->use();
 
-	LOGD("Binding to texture %d", _texture_name);
 	GLCALL(glBindTexture(GL_TEXTURE_2D, _texture_name));
-	const GLfloat tex_width =  float(_surface.w) / float(_texture_width);
+	const GLfloat offsetX    = float(x) / float(JNI::egl_surface_width);
+	const GLfloat offsetY    = float(y) / float(JNI::egl_surface_height);
+	const GLfloat sizeW      = float(w) / float(JNI::egl_surface_width);
+	const GLfloat sizeH      = float(h) / float(JNI::egl_surface_height);
+	const GLfloat tex_width  = float(_surface.w) / float(_texture_width);
 	const GLfloat tex_height = float(_surface.h) / float(_texture_height);
-	LOGD("*** Drawing at (%f,%f) , size %f x %f", float(x) / float(_surface.w), float(y) / float(_surface.h),  tex_width, tex_height);
+//	LOGD("*** Drawing at (%f,%f) , size %f x %f", float(x) / float(_surface.w), float(y) / float(_surface.h),  tex_width, tex_height);
 
-	g_box_shader->setUniform("offsetXY", Math::Vector2d(float(x) / float(_surface.w), float(y) / float(_surface.h)));
-	g_box_shader->setUniform("sizeWH", Math::Vector2d(1.0f, 1.0f));
+	g_box_shader->setUniform("offsetXY", Math::Vector2d(offsetX, offsetY));
+	g_box_shader->setUniform("sizeWH", Math::Vector2d(sizeW, sizeH));
 	g_box_shader->setUniform("texcrop", Math::Vector2d(tex_width, tex_height));
 
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
