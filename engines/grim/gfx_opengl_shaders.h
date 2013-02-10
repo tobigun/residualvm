@@ -214,8 +214,8 @@ private:
 
 	int _smushWidth;
 	int _smushHeight;
-	uint32 _smushNumTex;
-	GLuint *_smushTexIds;
+	GLuint _smushTexId;
+	bool _smushSwizzle;
 	void setupTexturedQuad();
 	void setupBigEBO();
 
