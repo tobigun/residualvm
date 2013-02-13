@@ -164,9 +164,11 @@ public abstract class ResidualVM implements SurfaceHolder.Callback, Runnable {
 		// Android's eglChooseConfig is busted in several versions and
 		// devices so we have to filter/rank the configs ourselves.
 		_egl_config = chooseEglConfig(configs);
-
+		int EGL_CONTEXT_CLIENT_VERSION = 0x3098;
+		int[] attrib_list = { EGL_CONTEXT_CLIENT_VERSION, 2,
+		                      EGL10.EGL_NONE };
 		_egl_context = _egl.eglCreateContext(_egl_display, _egl_config,
-											EGL10.EGL_NO_CONTEXT, null);
+		                                     EGL10.EGL_NO_CONTEXT, attrib_list);
 
 		if (_egl_context == EGL10.EGL_NO_CONTEXT)
 			throw new Exception(String.format("Failed to create context: 0x%x",
