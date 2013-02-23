@@ -311,23 +311,24 @@ void OSystem_Android::updateEventScale() {
 	_eventScaleX = 100 * 640 / tex->width();
 }
 
-enum TouchArea {
-	kTouchAreaCenter  = 1,
-	kTouchAreaTop     = 2,
-	kTouchAreaBottom  = 4,
-	kTouchAreaLeft    = 8,
-	kTouchAreaRight   = 16
+int OSystem_Android::_virt_numControls = 11;
+int OSystem_Android::_virt_holdControls = 4;
+OSystem_Android::VirtControl OSystem_Android::_virtcontrols[] = {
+		{0, 0, false, Common::KEYCODE_LEFT, false},
+		{1, 0, false, Common::KEYCODE_DOWN, false},
+		{2, 0, false, Common::KEYCODE_RIGHT, false},
+		{1, 1, false, Common::KEYCODE_UP, false},
+		{2, 1, true, Common::KEYCODE_CAPSLOCK, false},
+		{-2, 1, false, Common::KEYCODE_u, false},
+		{-3, 1, false, Common::KEYCODE_p, false},
+		{-1, 5, false, Common::KEYCODE_i, false},
+		{-1, 0, false, Common::KEYCODE_PAGEDOWN, false},
+		{-1, 1, false, Common::KEYCODE_KP_ENTER, false},
+		{-1, 2, false, Common::KEYCODE_PAGEUP, false},
 };
 
-enum VirtArrowKey {
-	kVirtArrowKeyUp    = 1,
-	kVirtArrowKeyDown  = 2,
-	kVirtArrowKeyLeft  = 4,
-	kVirtArrowKeyRight = 8,
-	kVirtArrowKeyRun   = 16
-};
 
-void OSystem_Android::updateVirtArrowKeys(int keys) {
+void OSystem_Android::updateVirtArrowKeys(uint32 keys) {
 	Common::Event e;
 
 #if 0
@@ -342,22 +343,13 @@ void OSystem_Android::updateVirtArrowKeys(int keys) {
 	}
 #endif
 
-	Common::KeyCode keymap[] = {
-			Common::KEYCODE_UP, Common::KEYCODE_DOWN,
-			Common::KEYCODE_LEFT, Common::KEYCODE_RIGHT,
-			Common::KEYCODE_LSHIFT
-	};
-
 	lockMutex(_event_queue_lock);
-	for (int i = 0; i < 5; ++i) {
-		int mask = (1 << i);
-		if ((_virt_arrowkeys_pressed & mask) && !(keys & mask)) {
-			e.type = Common::EVENT_KEYUP;
-			e.kbd.keycode = keymap[i];
-			_event_queue.push(e);
-		} else if (!(_virt_arrowkeys_pressed & mask) && (keys & mask)) {
-			e.type = Common::EVENT_KEYDOWN;
-			e.kbd.keycode = keymap[i];
+	for (uint16 i = 0; i < _virt_holdControls; ++i) {
+		bool active = (i == (keys & 0xffff) || i == (keys >> 16));
+		if (_virtcontrols[i].active != active) {
+			_virtcontrols[i].active = active;
+			e.type = active ? Common::EVENT_KEYDOWN : Common::EVENT_KEYUP;
+			e.kbd.keycode = _virtcontrols[i].keyCode;
 			_event_queue.push(e);
 		}
 	}
@@ -366,51 +358,33 @@ void OSystem_Android::updateVirtArrowKeys(int keys) {
 	_virt_arrowkeys_pressed = keys;
 }
 
-int OSystem_Android::getTouchArea(int x, int y) {
-	int xScaled = x * 100 / _egl_surface_width;
-	int yScaled = y * 100 / _egl_surface_height;
-
-	if (xScaled >= 35 && xScaled <= 65 && yScaled >= 35 && yScaled <= 65)
-		return kTouchAreaCenter;
-
-	int res = 0;
-	if (xScaled >= 0 && xScaled <= 20)
-		res |= kTouchAreaLeft;
-	else if (xScaled >= 80 && xScaled <= 100)
-		res |= kTouchAreaRight;
-	if (yScaled >= 0 && yScaled <= 20)
-		res |= kTouchAreaTop;
-	else if (yScaled >= 80 && yScaled <= 100)
-		res |= kTouchAreaBottom;
-
-	return res;
+uint16 OSystem_Android::getTouchArea(int x, int y) {
+	int scaledX = _virt_numDivisions * x / _egl_surface_width;
+	int scaledY = _virt_numDivisions * (_egl_surface_height - y) / _egl_surface_height;
+	for (uint16 i = 0; i < _virt_numControls; ++i) {
+		int testX = _virtcontrols[i].x < 0
+		          ? (_virtcontrols[i].x + _virt_numDivisions)
+		          : _virtcontrols[i].x;
+		if (scaledX == testX && scaledY == _virtcontrols[i].y)
+			return i;
+	}
+	return 0xffff;
 }
 
-int OSystem_Android::checkVirtArrowKeys(int action, int x, int y) {
-	int res = 0;
-
-	int touchArea = getTouchArea(x, y);
-	if (touchArea & kTouchAreaLeft) {
-		res |= kVirtArrowKeyLeft;
-	} else if (touchArea & kTouchAreaRight) {
-		res |= kVirtArrowKeyRight;
-	}
-	if (touchArea & kTouchAreaTop) {
-		res |= kVirtArrowKeyUp;
-	} else if (touchArea & kTouchAreaBottom) {
-		res |= kVirtArrowKeyDown;
-	}
-
-	return res;
+uint16 OSystem_Android::checkVirtArrowKeys(int action, int x, int y) {
+	return getTouchArea(x, y);
 }
+
 
 void OSystem_Android::checkVirtArrowKeys(int pointer, int action, int x0, int y0, int x1, int y1) {
-	int virtArrowkey = _virt_arrowkeys_pressed & kVirtArrowKeyRun;
+	uint32 down = ~0;
+
 	if (!(action == JACTION_POINTER_UP && pointer == 0))
-		virtArrowkey |= checkVirtArrowKeys(action, x0, y0);
+		down = (down & 0xffff0000) | checkVirtArrowKeys(action, x0, y0);
 	if (!(action == JACTION_POINTER_UP && pointer == 1) && x1 != -1)
-		virtArrowkey |= checkVirtArrowKeys(action, x1, y1);
-	updateVirtArrowKeys(virtArrowkey);
+		down = (down & 0x0000ffff) | (checkVirtArrowKeys(action, x1, y1) << 16);
+
+	updateVirtArrowKeys(down);
 }
 
 void OSystem_Android::pushEvent(int type, int arg1, int arg2, int arg3,
@@ -709,38 +683,38 @@ void OSystem_Android::pushEvent(int type, int arg1, int arg2, int arg3,
 
 		return;
 
-	case JE_LONG:
-		if (!_show_mouse &&
-			getTouchArea(arg1, arg2) == kTouchAreaCenter)
-		{
-			e.kbd.keycode = Common::KEYCODE_i;
-			e.kbd.ascii = 'i';
-
-			lockMutex(_event_queue_lock);
-			e.type = Common::EVENT_KEYDOWN;
-			_event_queue.push(e);
-			e.type = Common::EVENT_KEYUP;
-			_event_queue.push(e);
-			unlockMutex(_event_queue_lock);
-		}
-		break;
-
-	case JE_FLING:
-		if (!_show_mouse &&
-			(getTouchArea(arg1, arg2) == kTouchAreaCenter ||
-			 getTouchArea(arg3, arg4) == kTouchAreaCenter))
-		{
-			e.kbd.keycode = Common::KEYCODE_PERIOD;
-			e.kbd.ascii = '.';
-
-			lockMutex(_event_queue_lock);
-			e.type = Common::EVENT_KEYDOWN;
-			_event_queue.push(e);
-			e.type = Common::EVENT_KEYUP;
-			_event_queue.push(e);
-			unlockMutex(_event_queue_lock);
-		}
-		break;
+//	case JE_LONG:
+//		if (!_show_mouse &&
+//			getTouchArea(arg1, arg2) == kTouchAreaCenter)
+//		{
+//			e.kbd.keycode = Common::KEYCODE_i;
+//			e.kbd.ascii = 'i';
+//
+//			lockMutex(_event_queue_lock);
+//			e.type = Common::EVENT_KEYDOWN;
+//			_event_queue.push(e);
+//			e.type = Common::EVENT_KEYUP;
+//			_event_queue.push(e);
+//			unlockMutex(_event_queue_lock);
+//		}
+//		break;
+//
+//	case JE_FLING:
+//		if (!_show_mouse &&
+//			(getTouchArea(arg1, arg2) == kTouchAreaCenter ||
+//			 getTouchArea(arg3, arg4) == kTouchAreaCenter))
+//		{
+//			e.kbd.keycode = Common::KEYCODE_PERIOD;
+//			e.kbd.ascii = '.';
+//
+//			lockMutex(_event_queue_lock);
+//			e.type = Common::EVENT_KEYDOWN;
+//			_event_queue.push(e);
+//			e.type = Common::EVENT_KEYUP;
+//			_event_queue.push(e);
+//			unlockMutex(_event_queue_lock);
+//		}
+//		break;
 
 	case JE_TAP:
 		if (_fingersDown > 0) {
@@ -748,7 +722,7 @@ void OSystem_Android::pushEvent(int type, int arg1, int arg2, int arg3,
 			return;
 		}
 
-		if (_show_mouse) {
+		if (!_virtcontrols_on) {
 			e.type = Common::EVENT_MOUSEMOVE;
 
 			if (_touchpad_mode) {
@@ -789,17 +763,27 @@ void OSystem_Android::pushEvent(int type, int arg1, int arg2, int arg3,
 
 			unlockMutex(_event_queue_lock);
 		} else {
-			if (getTouchArea(arg1, arg2) == kTouchAreaCenter) {
+			uint16 idx = getTouchArea(arg1, arg2);
+			if (0xffff == idx) {
 				e.kbd.keycode = Common::KEYCODE_RETURN;
 				e.kbd.ascii = Common::ASCII_RETURN;
+			} else {
+				e.kbd.keycode = _virtcontrols[idx].keyCode;
+			}
 
-				lockMutex(_event_queue_lock);
+			lockMutex(_event_queue_lock);
+			if (idx == 0xffff || !_virtcontrols[idx].sticky) {
 				e.type = Common::EVENT_KEYDOWN;
 				_event_queue.push(e);
 				e.type = Common::EVENT_KEYUP;
 				_event_queue.push(e);
-				unlockMutex(_event_queue_lock);
+			} else {
+				bool active = _virtcontrols[idx].active;
+				_virtcontrols[idx].active = !active;
+				e.type = active ? Common::EVENT_KEYDOWN : Common::EVENT_KEYUP;
+				_event_queue.push(e);
 			}
+			unlockMutex(_event_queue_lock);
 		}
 
 		return;
@@ -858,10 +842,8 @@ void OSystem_Android::pushEvent(int type, int arg1, int arg2, int arg3,
 				unlockMutex(_event_queue_lock);
 			}
 		} else {
-			int touchArea = getTouchArea(arg1, arg2);
-			if (touchArea && touchArea != kTouchAreaCenter) {
-				updateVirtArrowKeys(_virt_arrowkeys_pressed | kVirtArrowKeyRun);
-			} else if (touchArea == kTouchAreaCenter) {
+			uint16 touchArea = getTouchArea(arg1, arg2);
+			if (touchArea == 0xffff) {
 				e.kbd.keycode = Common::KEYCODE_u;
 				e.kbd.ascii = 'u';
 
@@ -881,20 +863,20 @@ void OSystem_Android::pushEvent(int type, int arg1, int arg2, int arg3,
 		switch (arg2) {
 		case JACTION_DOWN:
 		case JACTION_MULTIPLE:
-			if (!_show_mouse) {
+			if (_virtcontrols_on) {
 				checkVirtArrowKeys(arg1, arg2, arg3, arg4, arg5, arg6);
 			}
 			return;
 
 		case JACTION_UP:
-			updateVirtArrowKeys(0);
+			updateVirtArrowKeys(0xffffffff);
 			return;
 
 		case JACTION_POINTER_DOWN:
 			if (arg1 > _fingersDown)
 				_fingersDown = arg1;
 
-			if (!_show_mouse) {
+			if (_virtcontrols_on) {
 				checkVirtArrowKeys(arg1, arg2, arg3, arg4, arg5, arg6);
 			}
 

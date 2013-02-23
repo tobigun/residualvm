@@ -142,6 +142,7 @@ private:
 	bool _show_mouse;
 	bool _use_mouse_palette;
 
+	bool _virtcontrols_on;
 	int _virt_arrowkeys_pressed;
 
 	int _graphicsMode;
@@ -247,10 +248,23 @@ private:
 	void updateEventScale();
 	void disableCursorPalette();
 
-	void updateVirtArrowKeys(int keys);
-	int getTouchArea(int x, int y);
-	int checkVirtArrowKeys(int action, int x, int y);
+	void updateVirtArrowKeys(uint32 keys);
+	uint16 getTouchArea(int x, int y);
+	uint16 checkVirtArrowKeys(int action, int x, int y);
 	void checkVirtArrowKeys(int pointer, int action, int x0, int y0, int x1, int y1);
+
+	struct VirtControl {
+		int x, y;
+		bool sticky;
+		Common::KeyCode keyCode;
+		bool active;
+	};
+
+	static int _virt_numControls, _virt_holdControls;
+	int _virt_numDivisions;
+	static VirtControl _virtcontrols[];
+	void initVirtControls();
+	void drawVirtControls();
 
 protected:
 	// PaletteManager API
@@ -317,6 +331,8 @@ public:
 	}
 	Graphics::PixelBuffer setupScreen(int screenW, int screenH, bool fullscreen, bool accel3d, bool isGame);
 };
+
+extern GLuint g_verticesVBO;
 
 #endif
 #endif

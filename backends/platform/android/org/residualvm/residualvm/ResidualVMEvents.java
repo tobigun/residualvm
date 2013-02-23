@@ -162,6 +162,9 @@ public class ResidualVMEvents implements
 	}
 
 	final public boolean onTouchEvent(MotionEvent e) {
+		if (_gd.onTouchEvent(e))
+			return true;
+
 		final int action = e.getAction();
 
 		// constants from APIv5:
@@ -180,8 +183,8 @@ public class ResidualVMEvents implements
 			_residualvm.pushEvent(JE_TOUCH, pointer, action & 0xff, // ACTION_MASK
 					x0, y0, x1, y1);
 		}
-
-		return _gd.onTouchEvent(e);
+		
+		return true;
 	}
 
 	// OnGestureListener
