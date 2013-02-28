@@ -205,6 +205,9 @@ protected:
 
 private:
 	float _alpha;
+	GLuint _emergTexture;
+	Graphics::Shader* _emergProgram;
+
 	Graphics::Shader* _backgroundProgram;
 	Graphics::Shader* _actorProgram;
 	Graphics::Shader* _spriteProgram;
