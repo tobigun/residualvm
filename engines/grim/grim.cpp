@@ -85,7 +85,7 @@ GrimEngine::GrimEngine(OSystem *syst, uint32 gameFlags, GrimGameType gameType, C
 	g_movie = NULL;
 	g_imuse = NULL;
 
-	_showFps = g_registry->getBool("show_fps");
+	_showFps = true || g_registry->getBool("show_fps");
 
 #ifdef USE_OPENGL
 	_softRenderer = g_registry->getBool("soft_renderer");
