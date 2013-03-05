@@ -1553,19 +1553,19 @@ void Actor::draw() {
 		g_grim->getCurrSet()->setupLights(absPos);
 
 		Costume *costume = _costumeStack.back();
-		for (int l = 0; l < MAX_SHADOWS; l++) {
-			if (!shouldDrawShadow(l))
-				continue;
-			g_driver->setShadow(&_shadowArray[l]);
-			g_driver->setShadowMode();
-			if (g_driver->isHardwareAccelerated())
-				g_driver->drawShadowPlanes();
-			g_driver->startActorDraw(absPos, _scale, rot, _inOverworld, _alphaMode != AlphaOff ? _globalAlpha : 1.f);
-			costume->draw();
-			g_driver->finishActorDraw();
-			g_driver->clearShadowMode();
-			g_driver->setShadow(NULL);
-		}
+//		for (int l = 0; l < MAX_SHADOWS; l++) {
+//			if (!shouldDrawShadow(l))
+//				continue;
+//			g_driver->setShadow(&_shadowArray[l]);
+//			g_driver->setShadowMode();
+//			if (g_driver->isHardwareAccelerated())
+//				g_driver->drawShadowPlanes();
+//			g_driver->startActorDraw(absPos, _scale, rot, _inOverworld, _alphaMode != AlphaOff ? _globalAlpha : 1.f);
+//			costume->draw();
+//			g_driver->finishActorDraw();
+//			g_driver->clearShadowMode();
+//			g_driver->setShadow(NULL);
+//		}
 
 		bool isShadowCostume = costume->getFilename().equals("fx/dumbshadow.cos");
 		if (!isShadowCostume || (isShadowCostume && _costumeStack.size() > 1 && _shadowActive)) {
