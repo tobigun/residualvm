@@ -83,10 +83,10 @@ public:
 			glUniform2fv(pos, 1, v.getData());
 	}
 
-	void setUniform(const char *uniform, bool b) {
+	void setUniform(const char *uniform, unsigned int x) {
 		GLint pos = getUniformLocation(uniform);
 		if (pos != -1)
-			glUniform1i(pos, b);
+			glUniform1i(pos, x);
 	}
 
 	GLint getUniformLocation(const char *uniform) const {
