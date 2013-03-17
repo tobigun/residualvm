@@ -854,7 +854,7 @@ void GfxOpenGLS::createFont(Font *font) {
 }
 
 void GfxOpenGLS::destroyFont(Font *font) {
-	FontUserData *data = (FontUserData *)font->getUserData();
+	const FontUserData *data = (const FontUserData *)font->getUserData();
 	if (data) {
 		glDeleteTextures(1, &(data->texture));
 		delete data;
