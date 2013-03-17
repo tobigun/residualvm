@@ -188,9 +188,6 @@ public:
 
 	virtual const char *getVideoDeviceName();
 
-	virtual void saveState(SaveGame *state);
-	virtual void restoreState(SaveGame *state);
-
 	void renderBitmaps(bool render);
 	void renderZBitmaps(bool render);
 

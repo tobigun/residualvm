@@ -1155,16 +1155,6 @@ const char *GfxOpenGLS::getVideoDeviceName() {
 	return "OpenGLS Renderer";
 }
 
-
-void GfxOpenGLS::saveState(SaveGame *state) {
-
-}
-
-void GfxOpenGLS::restoreState(SaveGame *state) {
-
-}
-
-
 void GfxOpenGLS::renderBitmaps(bool render) {
 
 }
