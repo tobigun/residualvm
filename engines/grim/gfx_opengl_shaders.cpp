@@ -157,7 +157,6 @@ void GfxOpenGLS::setupZBuffer() {
 
 	glGenTextures(1, (GLuint *)&_zBufTex);
 	glActiveTexture(GL_TEXTURE1);
-	glEnable(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, _zBufTex);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -772,7 +771,6 @@ void GfxOpenGLS::drawDepthBitmap(int x, int y, int w, int h, char *data) {
 	}
 
 	glActiveTexture(GL_TEXTURE1);
-	glEnable(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, _zBufTex);
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 2);
 	glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, w, h, GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, data);
