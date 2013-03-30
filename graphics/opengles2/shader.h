@@ -30,6 +30,7 @@
 #include "math/matrix4.h"
 #include "math/vector2d.h"
 #include "math/vector3d.h"
+#include "math/vector4d.h"
 
 #include "graphics/opengles2/system_headers.h"
 
@@ -69,6 +70,12 @@ public:
 		GLint pos = getUniformLocation(uniform);
 		if (pos != -1)
 			glUniformMatrix3fv(pos, 1, GL_FALSE, m.getData());
+	}
+
+	void setUniform(const char *uniform, const Math::Vector4d &v) {
+		GLint pos = getUniformLocation(uniform);
+		if (pos != -1)
+			glUniform4fv(pos, 1, v.getData());
 	}
 
 	void setUniform(const char *uniform, const Math::Vector3d &v) {
