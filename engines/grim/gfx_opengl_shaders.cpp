@@ -142,11 +142,12 @@ GfxOpenGLS::GfxOpenGLS() {
 	_fclip = -1;
 	_selectedTexture = NULL;
 	_emergTexture = 0;
-	_renderZBitmaps = true;
+	_maxLights = 8;
+	_lights = new Light[_maxLights];
 }
 
 GfxOpenGLS::~GfxOpenGLS() {
-
+	delete[] _lights;
 }
 
 void GfxOpenGLS::setupZBuffer() {
@@ -360,6 +361,24 @@ void GfxOpenGLS::startActorDraw(const Math::Vector3d &pos, float scale, const Ma
 		_actorProgram->setUniform("tex", 0);
 		_actorProgram->setUniform("texZBuf", 1);
 		_actorProgram->setUniform("texcropZBuf", _zBufTexCrop);
+
+		for (uint32 i = 0; i < _maxLights; ++i) {
+			const Light &l = _lights[i];
+			Common::String uniform;
+			uniform = Common::String::format("lights[%u]._position", i);
+			_actorProgram->setUniform(uniform.c_str(), _viewMatrix * l._position);
+
+			Math::Vector4d direction = l._direction;
+			direction.w() = 0.0;
+			_viewMatrix.transformVector(&direction);
+			direction.w() = l._direction.w();
+
+			uniform = Common::String::format("lights[%u]._direction", i);
+			_actorProgram->setUniform(uniform.c_str(), direction);
+
+			uniform = Common::String::format("lights[%u]._color", i);
+			_actorProgram->setUniform(uniform.c_str(), l._color);
+		}
 	}
 }
 
@@ -510,12 +529,44 @@ void GfxOpenGLS::disableLights() {
 
 }
 
-void GfxOpenGLS::setupLight(Light *light, int lightId) {
+void GfxOpenGLS::setupLight(Grim::Light *light, int lightId) {
+	if (lightId >= _maxLights) {
+		return;
+	}
 
+	Math::Vector4d &lightColor = _lights[lightId]._color;
+	Math::Vector4d &lightPos   = _lights[lightId]._position;
+	Math::Vector4d &lightDir   = _lights[lightId]._direction;
+
+	float intensity = light->_intensity / 1.3f;
+	lightColor.x() = ((float)light->_color.getRed() / 15.0f) * intensity;
+	lightColor.y() = ((float)light->_color.getGreen() / 15.0f) * intensity;
+	lightColor.z() = ((float)light->_color.getBlue() / 15.0f) * intensity;
+	lightColor.w() = 1.0f;
+
+	if (light->_type == "omni") {
+		lightPos = Math::Vector4d(light->_pos.x(), light->_pos.y(), light->_pos.z(), 1.0f);
+		lightDir = Math::Vector4d(0.0f, 0.0f, 0.0f, -1.0f);
+	} else if (light->_type == "direct") {
+		lightPos = Math::Vector4d(-light->_dir.x(), -light->_dir.y(), -light->_dir.z(), 0.0f);
+		lightDir = Math::Vector4d(0.0f, 0.0f, 0.0f, -1.0f);
+	} else if (light->_type == "spot") {
+		lightPos = Math::Vector4d(light->_pos.x(), light->_pos.y(), light->_pos.z(), 1.0f);
+		lightDir = Math::Vector4d(light->_dir.x(), light->_dir.y(), light->_dir.z(), Math::Angle(light->_penumbraangle).getCosine());
+	} else {
+		error("Set::setupLights() Unknown type of light: %s", light->_type.c_str());
+		return;
+	}
 }
 
 void GfxOpenGLS::turnOffLight(int lightId) {
+	if (lightId >= _maxLights) {
+		return;
+	}
 
+	_lights[lightId]._color = Math::Vector4d(0.0f, 0.0f, 0.0f, 0.0f);
+	_lights[lightId]._position = Math::Vector4d(0.0f, 0.0f, 0.0f, 0.0f);
+	_lights[lightId]._direction = Math::Vector4d(0.0f, 0.0f, 0.0f, 0.0f);
 }
 
 
