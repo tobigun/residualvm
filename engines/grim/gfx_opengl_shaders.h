@@ -249,6 +249,7 @@ private:
 	};
 
 	Light *_lights;
+	bool _lightsEnabled;
 };
 }
 #endif

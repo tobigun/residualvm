@@ -144,6 +144,7 @@ GfxOpenGLS::GfxOpenGLS() {
 	_emergTexture = 0;
 	_maxLights = 8;
 	_lights = new Light[_maxLights];
+	_lightsEnabled = false;
 }
 
 GfxOpenGLS::~GfxOpenGLS() {
@@ -362,22 +363,25 @@ void GfxOpenGLS::startActorDraw(const Math::Vector3d &pos, float scale, const Ma
 		_actorProgram->setUniform("texZBuf", 1);
 		_actorProgram->setUniform("texcropZBuf", _zBufTexCrop);
 
-		for (uint32 i = 0; i < _maxLights; ++i) {
-			const Light &l = _lights[i];
-			Common::String uniform;
-			uniform = Common::String::format("lights[%u]._position", i);
-			_actorProgram->setUniform(uniform.c_str(), _viewMatrix * l._position);
+		_actorProgram->setUniform("lightsEnabled", _lightsEnabled);
+		if (_lightsEnabled) {
+			for (uint32 i = 0; i < _maxLights; ++i) {
+				const Light &l = _lights[i];
+				Common::String uniform;
+				uniform = Common::String::format("lights[%u]._position", i);
+				_actorProgram->setUniform(uniform.c_str(), _viewMatrix * l._position);
 
-			Math::Vector4d direction = l._direction;
-			direction.w() = 0.0;
-			_viewMatrix.transformVector(&direction);
-			direction.w() = l._direction.w();
+				Math::Vector4d direction = l._direction;
+				direction.w() = 0.0;
+				_viewMatrix.transformVector(&direction);
+				direction.w() = l._direction.w();
 
-			uniform = Common::String::format("lights[%u]._direction", i);
-			_actorProgram->setUniform(uniform.c_str(), direction);
+				uniform = Common::String::format("lights[%u]._direction", i);
+				_actorProgram->setUniform(uniform.c_str(), direction);
 
-			uniform = Common::String::format("lights[%u]._color", i);
-			_actorProgram->setUniform(uniform.c_str(), l._color);
+				uniform = Common::String::format("lights[%u]._color", i);
+				_actorProgram->setUniform(uniform.c_str(), l._color);
+			}
 		}
 	}
 }
@@ -452,6 +456,7 @@ void GfxOpenGLS::drawEMIModelFace(const EMIModel* model, const EMIMeshFace* face
 
 	model->_shader->use();
 	model->_shader->setUniform("textured", face->_hasTexture ? GL_TRUE : GL_FALSE);
+	model->_shader->setUniform("lightsEnabled", _lightsEnabled);
 
 	Math::Matrix4 extraMatrix;
 	model->_shader->setUniform("extraMatrix", extraMatrix);
@@ -476,8 +481,8 @@ void GfxOpenGLS::drawMesh(const Mesh *mesh) {
 		if (face->_light == 0 && !isShadowModeActive())
 			disableLights();
 
-			curMaterial = face->_material;
-			curMaterial->select();
+		curMaterial = face->_material;
+		curMaterial->select();
 
 		int faces = 0;
 		for (; i < mesh->_numFaces; ++i) {
@@ -513,6 +518,7 @@ void GfxOpenGLS::drawSprite(const Sprite *sprite) {
 
 	_spriteProgram->setUniform("textured", GL_TRUE);
 	_spriteProgram->setUniform("isBillboard", GL_TRUE);
+	_spriteProgram->setUniform("lightsEnabled", false);
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _quadEBO);
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
@@ -522,14 +528,16 @@ void GfxOpenGLS::drawSprite(const Sprite *sprite) {
 
 
 void GfxOpenGLS::enableLights() {
-
+	_lightsEnabled = true;
 }
 
 void GfxOpenGLS::disableLights() {
-
+	_lightsEnabled = false;
 }
 
 void GfxOpenGLS::setupLight(Grim::Light *light, int lightId) {
+	_lightsEnabled = true;
+
 	if (lightId >= _maxLights) {
 		return;
 	}
@@ -537,7 +545,7 @@ void GfxOpenGLS::setupLight(Grim::Light *light, int lightId) {
 	// Disable previous lights.
 	if (lightId == 0) {
 		for (uint32 id = 0; id < _maxLights; ++id)
-			_lights[lightId]._color.w() = 0.0;
+			_lights[id]._color.w() = 0.0;
 	}
 
 	Math::Vector4d &lightColor = _lights[lightId]._color;
