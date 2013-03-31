@@ -1330,14 +1330,18 @@ void GfxOpenGLS::createModel(Mesh *mesh) {
 
 #define VERT(j) (&mesh->_vertices[3*face->_vertices[j]])
 #define TEXVERT(j) (face->_texVertices ? &mesh->_textureVerts[2*face->_texVertices[j]] : zero_texVerts)
-
-		const float *normal = face->_normal.getData();
+#define NORMAL(j) (&mesh->_vertNormals[3*face->_vertices[j]])
 
 		for (int j = 2; j < face->_numVertices; ++j) {
-			meshInfo.push_back(GrimVertex(VERT(0), TEXVERT(0), normal));
-			meshInfo.push_back(GrimVertex(VERT(j-1), TEXVERT(j-1), normal));
-			meshInfo.push_back(GrimVertex(VERT(j), TEXVERT(j), normal));
+			meshInfo.push_back(GrimVertex(VERT(0), TEXVERT(0), NORMAL(0)));
+			meshInfo.push_back(GrimVertex(VERT(j-1), TEXVERT(j-1), NORMAL(j-1)));
+			meshInfo.push_back(GrimVertex(VERT(j), TEXVERT(j), NORMAL(j)));
 		}
+
+#undef VERT
+#undef TEXVERT
+#undef NORMAL
+
 	}
 
 	if (meshInfo.empty()) {
@@ -1355,7 +1359,5 @@ void GfxOpenGLS::createModel(Mesh *mesh) {
 	shader->enableVertexAttribute("normal", meshInfoVBO, 3, GL_FLOAT, GL_FALSE, sizeof(GrimVertex), 5 * sizeof(float));
 }
 
-#undef VERT
-#undef TEXVERT
 
 }
