@@ -6,26 +6,47 @@ uniform sampler2D texZBuf;
 uniform bool textured;
 uniform vec2 texcropZBuf;
 
+const vec2 screenSize = vec2(640.0, 480.0);
+
+#define SGSPLUS_FIX
+#ifndef SGSPLUS_FIX
+const float offsetY = 0.0;
+#else
+// fix for bugged Samsung Galaxy S plus driver
+const float offsetY = 32.0;
+#endif
 
 OUTPUT
 
-void main()
+void checkZBuffer() 
 {
-	vec2 screenSize = vec2(640.0, 480.0);
-	vec2 zCoord = vec2((gl_FragCoord.x-0.5)/screenSize.x, 1.0-(gl_FragCoord.y-0.5)/screenSize.y);
+#ifndef SGSPLUS_FIX
+	vec2 zCoord = vec2((gl_FragCoord.x-0.5)/screenSize.x, 1.0-(gl_FragCoord.y-offsetY-0.5)/screenSize.y);
+#else
+	vec2 zCoord = vec2((gl_FragCoord.x-0.5)/screenSize.x, (gl_FragCoord.y-offsetY-0.5)/screenSize.y);
+#endif
 	vec2 sampled = texture(texZBuf, zCoord * texcropZBuf).ra;
 	float sceneZ = sampled.y + sampled.x / 256.0; 		
 	
-	if (false) {
-		sceneZ = gl_FragCoord.y/480.0;//sampled.x;
-		//if (gl_FragCoord.z < sceneZ)
-		//	sceneZ = gl_FragCoord.z;
+#if 0
+	sceneZ = gl_FragCoord.y/screenSize.y;
+	//if (gl_FragCoord.z < sceneZ)
+	//	sceneZ = gl_FragCoord.z;
+	if (gl_FragCoord.y >= 0.0 + offsetY && gl_FragCoord.y < 5.0 + offsetY)
+		outColor = vec4(0.0, 0.0, 1.0, 1.0);
+	else if (gl_FragCoord.y >= screenSize.y-5.0 + offsetY && gl_FragCoord.y <= screenSize.y + offsetY)
+		outColor = vec4(1.0, 0.0, 0.0, 1.0);
+	else
 		outColor = vec4(sceneZ, sceneZ, sceneZ, 1.0);
-	} else {
-		if (gl_FragCoord.z * 1.0039 > sceneZ)
-			discard;
-	}
+#else
+	if (gl_FragCoord.z * 1.0039 > sceneZ)
+		discard;
+#endif
+}
 
+void main()
+{
+	checkZBuffer();
 	outColor = Color;
 	if (textured) {
 		outColor *= texture(tex, Texcoord);
