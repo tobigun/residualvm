@@ -267,6 +267,10 @@ public:
 	virtual void drawBuffers() {}
 	virtual void refreshBuffers() {}
 
+    /* add-in functionality for mouse support */
+    
+    virtual bool worldToScreen(const Math::Vector3d &vec, int& x, int &y) { return false; }
+	
 protected:
 	static const int _gameHeight = 480;
 	static const int _gameWidth = 640;

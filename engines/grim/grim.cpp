@@ -63,6 +63,8 @@
 #include "engines/grim/sound.h"
 #include "engines/grim/stuffit.h"
 #include "engines/grim/debugger.h"
+#include "engines/grim/cursor.h"
+#include "engines/grim/hotspot.h"
 
 #include "engines/grim/imuse/imuse.h"
 
@@ -75,7 +77,7 @@ GfxBase *g_driver = NULL;
 int g_imuseState = -1;
 
 GrimEngine::GrimEngine(OSystem *syst, uint32 gameFlags, GrimGameType gameType, Common::Platform platform, Common::Language language) :
-		Engine(syst), _currSet(NULL), _selectedActor(NULL), _pauseStartTime(0) {
+		Engine(syst), _currSet(NULL), _selectedActor(NULL), _pauseStartTime(0), _opMode(0) {
 	g_grim = this;
 
 	_debugger = new Debugger();
@@ -93,7 +95,7 @@ GrimEngine::GrimEngine(OSystem *syst, uint32 gameFlags, GrimGameType gameType, C
 	g_localizer = NULL;
 	g_movie = NULL;
 	g_imuse = NULL;
-
+    
 	//Set default settings
 	ConfMan.registerDefault("soft_renderer", false);
 	ConfMan.registerDefault("engine_speed", 60);
@@ -110,6 +112,9 @@ GrimEngine::GrimEngine(OSystem *syst, uint32 gameFlags, GrimGameType gameType, C
 	_mixer->setVolumeForSoundType(Audio::Mixer::kSpeechSoundType, ConfMan.getInt("speech_volume"));
 	_mixer->setVolumeForSoundType(Audio::Mixer::kMusicSoundType, ConfMan.getInt("music_volume"));
 
+    _cursor = NULL;
+    _hotspotManager = NULL;
+//     
 	_currSet = NULL;
 	_selectedActor = NULL;
 	_controlsEnabled = new bool[KEYCODE_EXTRA_LAST];
@@ -193,7 +198,9 @@ GrimEngine::~GrimEngine() {
 	g_driver = NULL;
 	delete _iris;
 	delete _debugger;
-
+    delete _hotspotManager;
+    delete _cursor;
+    
 	ConfMan.flushToDisk();
 	DebugMan.clearAllDebugChannels();
 }
@@ -291,7 +298,10 @@ Common::Error GrimEngine::run() {
 		// TODO: Play EMI Mac Aspyr logo
 		warning("TODO: Play Aspyr logo");
 	}
-
+	
+	_cursor = new Cursor(this);
+    _hotspotManager = new HotspotMan;
+        
 	Bitmap *splash_bm = NULL;
 	if (!(_gameFlags & ADGF_DEMO) && getGameType() == GType_GRIM)
 		splash_bm = Bitmap::create("splash.bm");
@@ -608,6 +618,9 @@ void GrimEngine::drawNormalMode() {
 	// The overlay objects should be drawn on top of everything else,
 	// including 3D objects such as Manny and the message tube
 	_currSet->drawBitmaps(ObjectState::OBJSTATE_OVERLAY);
+    
+    _cursor->draw();
+    _hotspotManager->drawActive();
 }
 
 void GrimEngine::doFlip() {
@@ -710,7 +723,14 @@ void GrimEngine::mainLoop() {
 		while (g_system->getEventManager()->pollEvent(event)) {
 			// Handle any buttons, keys and joystick operations
 			Common::EventType type = event.type;
-			if (type == Common::EVENT_KEYDOWN || type == Common::EVENT_KEYUP) {
+			if (type == Common::EVENT_MOUSEMOVE) {
+                _cursor->updatePosition(event.mouse);
+                _hotspotManager->hover(_cursor);
+            } else if (type == Common::EVENT_LBUTTONDOWN || 
+                       type == Common::EVENT_RBUTTONDOWN || 
+                       type == Common::EVENT_MBUTTONDOWN) {
+                _hotspotManager->event(_cursor->getPosition(), type);
+            } else if (type == Common::EVENT_KEYDOWN || type == Common::EVENT_KEYUP) {
 				if (type == Common::EVENT_KEYDOWN) {
 					// Allow us to disgracefully skip movies in the PS2-version:
 					if (_mode == SmushMode && getGamePlatform() == Common::kPlatformPS2) {
@@ -1159,6 +1179,7 @@ void GrimEngine::makeCurrentSetup(int num) {
 		// here should be set sound position
 
 		_setupChanged = true;
+        _hotspotManager->updatePerspective();
 	}
 }
 
@@ -1274,5 +1295,6 @@ void GrimEngine::pauseEngineIntern(bool pause) {
 void GrimEngine::debugLua(const Common::String &str) {
 	lua_dostring(str.c_str());
 }
+
 
 } // end of namespace Grim

@@ -186,7 +186,7 @@ void TextObject::reposition() {
 }
 
 void TextObject::setupText() {
-	Common::String msg = LuaBase::instance()->parseMsgText(_textID.c_str(), NULL);
+    Common::String msg = LuaBase::instance()->parseMsgText(_textID.c_str(), NULL);
 	Common::String message;
 
 	// remove spaces (NULL_TEXT) from the end of the string,
@@ -232,15 +232,15 @@ void TextObject::setupText() {
 	} else if (_justify == RJUSTIFY) {
 		maxWidth = _posX;
 	}
-
+	
 	// We break the message to lines not longer than maxWidth
 	Common::String currLine;
 	_numberLines = 1;
 	int lineWidth = 0;
 	int maxLineWidth = 0;
-	for (uint i = 0; i < msg.size(); i++) {
+    for (uint i = 0; i < msg.size(); i++) {
 		lineWidth += MAX(_font->getCharWidth(msg[i]), _font->getCharDataWidth(msg[i]));
-		if (lineWidth > maxWidth) {
+        if (lineWidth > maxWidth) {
 			bool wordSplit = false;
 			if (currLine.contains(' ')) {
 				while (msg[i] != ' ' && i > 0) {
@@ -250,7 +250,7 @@ void TextObject::setupText() {
 				}
 			} else if (msg[i] != ' ') { // if it is a unique word
 				int dashWidth = MAX(_font->getCharWidth('-'), _font->getCharDataWidth('-'));
-				while (lineWidth + dashWidth > maxWidth) {
+                while (lineWidth + dashWidth > maxWidth) {
 					lineWidth -= MAX(_font->getCharWidth(msg[i]), _font->getCharDataWidth(msg[i]));
 					message.deleteLastChar();
 					--i;

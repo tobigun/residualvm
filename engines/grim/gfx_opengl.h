@@ -122,6 +122,9 @@ public:
 
 	void createSpecialtyTextures();
 
+    // special
+    bool worldToScreen(const Math::Vector3d &vec, int& x, int &y);
+    
 protected:
 	void drawDepthBitmap(int x, int y, int w, int h, char *data);
 private:
