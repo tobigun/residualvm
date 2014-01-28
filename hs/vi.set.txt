@@ -1,0 +1,8 @@
+/vitx032/suitcases suitcases
+/vitx034/valve valve
+/vitx036/Meche Meche
+/vitx043/drain drain
+/vitx044/vent vent
+/vitx050/sprinkler sprinkler
+axe axe
+/vitx053/secret door secret door

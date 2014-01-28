@@ -1,0 +1,10 @@
+/votx013/vault door vault door
+/votx016/metal tab metal tab
+/votx022/drawers drawers
+/votx031/drawers drawers
+/votx032/drawers drawers
+/votx033/drawers drawers
+/votx034/suit of armor suit of armor
+/votx043/broadaxe broadaxe
+/votx045/door door
+/votx048/secret door secret door

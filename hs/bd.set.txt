@@ -1,0 +1,12 @@
+/bdtx018/fire extinguisher fire extinguisher
+/bdtx028/beaver beaver
+/bdtx031/dam dam
+/bdtx035/river of tar river of tar
+/bdtx040/diving beaver diving beaver
+ 
+/bdtx051/road road
+ 
+/bdtx063/trail trail
+/bdtx064/door door
+/bdtx043/padlock padlock
+/bdtx053/gate gate

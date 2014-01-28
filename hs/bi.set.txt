@@ -1,0 +1,11 @@
+/bitx412/revolutionaries revolutionaries
+/bitx413/revolutionaries revolutionaries
+/bitx414/book book
+/bitx415/microphone microphone
+/bitx416/beatniks beatniks
+/bitx417/beatniks beatniks
+/bitx418/door door
+sign sign
+/bitx419/Olivia Olivia
+/bitx420/door door
+/bitx421/door door

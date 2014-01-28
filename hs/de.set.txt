@@ -1,0 +1,4 @@
+/detx001/forklift forklift
+/detx004/lever lever
+/detx005/button button
+/detx010/door door

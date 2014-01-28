@@ -1,0 +1,7 @@
+/tgtx014/note note
+/tgtx022/Gate Keeper Gate Keeper
+/tgtx026/doorway doorway
+/tgtx033/sign sign
+/tgtx038/track track
+/tgtx042/doorway doorway
+/tgtx044/stairs stairs

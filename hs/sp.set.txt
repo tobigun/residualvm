@@ -1,0 +1,11 @@
+ 
+/sptx001/web web
+/sptx009/heart heart
+/sptx012/pile of bones pile of bones
+/sptx017/bone bone
+/sptx021/bone1 bone
+/sptx025/bone2 bone
+/sptx026/bone3 bone
+/sptx027/bone4 bone
+/sptx028/bone5 bone
+/sptx029/door door

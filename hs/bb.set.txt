@@ -1,0 +1,3 @@
+/bbtx003/blimp blimp
+/bbtx001/bridge bridge
+/bbtx002/bridge bridge

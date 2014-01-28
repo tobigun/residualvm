@@ -1,0 +1,3 @@
+/cvtx001/crane crane
+/cvtx004/cabin cabin
+/cvtx006/belt belt

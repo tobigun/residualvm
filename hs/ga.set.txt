@@ -1,0 +1,15 @@
+ 
+ 
+/gatx098/work order work order
+/gatx105/water fountain water fountain
+/gatx107/tool cabinet tool cabinet
+/gatx110/tool cabinet tool cabinet
+/gatx111/window window
+/gatx115/crash trigger crash trigger
+/gatx116/Glottis' eyes Glottis' eyes
+/gatx123/kiosk kiosk
+/gatx128/Land of the Living Land of the Living
+/gatx132/cars cars
+/gatx117/door door
+/gatx118/elevator elevator
+/gatx121/big door big door

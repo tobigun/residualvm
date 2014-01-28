@@ -1,0 +1,9 @@
+/tdtx001/mug mug
+/tdtx005/truck door truck door
+/tdtx012/truck truck
+/tdtx016/truck_door truck_door
+/tdtx017/truck truck
+/tdtx018/road road
+/tdtx021/casket casket
+/tdtx028/ravine ravine
+/tdtx026/stairs stairs

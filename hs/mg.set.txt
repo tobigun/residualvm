@@ -1,0 +1,6 @@
+/mgtx048/corpse 1 corpse
+/mgtx062/corpse 2 corpse
+/mgtx063/Coroner Coroner
+/mgtx071/slab slab
+/mgtx075/slab slab
+/mgtx076/door door

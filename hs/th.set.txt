@@ -1,0 +1,12 @@
+/thtx071/grinder grinder
+/thtx074/snow machine snow machine
+/thtx082/lever lever
+/thtx001/ladder ladder
+/thtx002/top top
+/thtx086/pot of coffee pot of coffee
+/thtx091/burners burners
+/thtx093/dressing room dressing room
+/thtx095/Thunder Boy Thunder Boy
+/thtx100/Thunder Boy Thunder Boy
+/thtx101/Thunder Boys Thunder Boys
+/thtx114/basement basement

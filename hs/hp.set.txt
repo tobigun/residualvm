@@ -1,0 +1,5 @@
+/hptx001/cans cans
+/hptx002/cans cans
+/hptx003/cans cans
+/hptx004/cans cans
+/hptx005/door door

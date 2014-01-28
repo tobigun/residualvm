@@ -1,0 +1,3 @@
+/bptx003/statue statue
+/bptx001/bridge bridge
+/bptx002/tunnel tunnel

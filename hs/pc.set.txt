@@ -1,0 +1,4 @@
+/pctx001/door door
+/pctx002/bridge bridge
+/pctx003/door door
+/pctx005/stairs stairs

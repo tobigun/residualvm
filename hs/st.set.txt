@@ -1,0 +1,7 @@
+/fetx093/crates crates
+/sttx097/door door
+/sttx002/door door
+/sttx003/festival festival
+/sttx098/door door
+/sttx099/door door
+/sttx100/door door

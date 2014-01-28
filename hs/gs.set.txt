@@ -1,0 +1,4 @@
+ 
+/gstx081/dispenser dispenser
+/gstx087/window window
+/gstx092/door door

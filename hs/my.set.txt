@@ -1,0 +1,11 @@
+/mytx003/gondola gondola
+/mytx012/Glottis Glottis
+/mytx024/mechanic mechanic
+/mytx024/mechanic mechanic
+/mytx029/drawers drawers
+/mytx034/oil drum oil drum
+/mytx042/oily rag oily rag
+/mytx136/Meche Meche
+/mytx142/blueprints blueprints
+/mytx046/door door
+/mytx048/outside outside

@@ -1,0 +1,5 @@
+/cytx003/conveyor belt conveyor belt
+/cytx005/lever lever
+/cytx007/surface surface
+/cytx009/lit path lit path
+/cytx011/more belt more belt

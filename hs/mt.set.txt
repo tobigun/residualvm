@@ -1,0 +1,5 @@
+/mttx011/Chepito Chepito
+/mttx032/fountain fountain
+/mttx018/mural mural
+/mttx023/tunnel tunnel
+/mttx030/doorway doorway

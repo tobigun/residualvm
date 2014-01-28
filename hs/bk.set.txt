@@ -1,0 +1,7 @@
+/bktx005/sink sink
+/bktx009/dishwasher dishwasher
+/bktx013/cleaning supplies cleaning supplies
+/bktx017/dishes dishes
+/bktx021/garbage garbage
+/bktx028/keg keg
+/bktx025/door door

@@ -1,0 +1,18 @@
+jello jello
+/xbtx001/gate gate
+/xbtx010/Glottis Glottis
+/xbtx011/Meche Meche
+/xbtx025/extendo bridge extendo bridge
+ 
+/xbtx007/bridge bridge
+/xbtx026/bridge bridge
+/xbtx021/doors doors
+door door
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 

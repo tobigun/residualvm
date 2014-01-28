@@ -1,0 +1,3 @@
+/smtx002/skyline skyline
+/smtx006/stump stump
+/smtx012/door door

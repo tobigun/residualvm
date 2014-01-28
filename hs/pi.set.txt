@@ -1,0 +1,4 @@
+/pitx011/posters posters
+/pitx015/cell cell
+/pitx019/Terry Terry
+/pitx001/door door

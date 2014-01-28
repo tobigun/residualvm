@@ -1,0 +1,8 @@
+/attx003/Bone Wagon Bone Wagon
+/attx006/catwalk catwalk
+/attx008/cave-gator cave-gator
+ 
+ 
+/attx014/sewer sewer
+/attx015/sewer sewer
+ 

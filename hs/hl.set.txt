@@ -1,0 +1,10 @@
+/hltx139/Glottis Glottis
+/hltx155/statue statue
+/hltx160/monitor monitor
+/hltx163/Virago Virago
+/hltx171/papers papers
+/hltx174/case case
+Raoul Raoul
+/hltx182/door door
+/hltx183/door door
+/hltx184/door door

@@ -1,0 +1,7 @@
+/wctx001/casks casks
+/wctx003/casks casks
+/wctx004/casks casks
+/wctx005/casks casks
+/wctx006/forklift forklift
+/wctx009/lever lever
+/wctx011/door door

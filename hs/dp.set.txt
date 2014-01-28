@@ -1,0 +1,2 @@
+anchor anchor
+/dptx002/door door

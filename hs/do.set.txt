@@ -1,0 +1,12 @@
+/dotx095/scotch scotch
+/dotx100/tube tube
+/dotx104/diplomas diplomas
+/dotx110/computer computer
+/dotx125/Domino Domino
+/dotx129/pictures pictures
+/dotx134/drawer drawer
+/dotx140/coral coral
+/dotx144/speed bag speed bag
+/dotx147/mouthpiece mouthpiece
+/dotx161/window window
+/dotx164/door door

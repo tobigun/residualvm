@@ -1,0 +1,2 @@
+/cltx011/telescope telescope
+/cltx001/door door

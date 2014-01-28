@@ -1,0 +1,10 @@
+/pktx002/nozzle nozzle
+/pktx005/nozzle nozzle
+/pktx006/puddle puddle
+ 
+ 
+ 
+ 
+ 
+/pktx014/coffin coffin
+/pktx013/door door

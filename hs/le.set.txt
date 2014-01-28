@@ -1,0 +1,14 @@
+/letx001/hanging rope hanging rope
+/letx004/loose end of rope loose end of rope
+/letx007/grappling hook grappling hook
+/letx009/rope to ledge rope to ledge
+/letx011/rope to ledge rope to ledge
+/letx013/ ladder to roof
+master pigeon master pigeon
+ 
+/letx015/window window
+/letx021/trigger trigger
+/letx024/window window
+/letx024/window window
+/letx024/window window
+/shtx010/ ladder

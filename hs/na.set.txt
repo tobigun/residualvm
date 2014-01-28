@@ -1,0 +1,5 @@
+/natx002/sign post sign post
+/natx005/dark passage dark passage
+/natx007/opening opening
+/natx009/Bone Wagon Bone Wagon
+/natx010/door door

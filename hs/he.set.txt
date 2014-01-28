@@ -1,0 +1,5 @@
+/hetx047/elevator elevator
+/hetx049/button button
+/hetx051/Aitor Aitor
+/hetx054/door door
+/hetx055/elevator elevator

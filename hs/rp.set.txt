@@ -1,0 +1,6 @@
+/rptx003/sign sign
+/rptx006/on-ramp on-ramp
+/rptx001/door door
+/rptx010/door door
+/rptx011/door door
+/rptx012/door door

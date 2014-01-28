@@ -1,0 +1,14 @@
+/sitx072/liquid nitrogen liquid nitrogen
+/sitx076/cabinet cabinet
+/sitx085/lettuce crisper lettuce crisper
+/sitx088/fridge fridge
+/sitx091/cot cot
+/sitx101/dog tags dog tags
+/sitx104/phone phone
+/sitx114/Toto Toto
+/sitx183/stuff stuff
+/sitx155/ladder ladder
+/sitx157/binders binders
+/sitx162/booze booze
+/sitx176/Sailor Sailor
+/sitx181/photo photo

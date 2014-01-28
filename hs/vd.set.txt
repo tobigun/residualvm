@@ -1,0 +1,7 @@
+/vdtx023/wheel wheel
+/vdtx029/handle handle
+/vdtx035/door jam door jam
+/vdtx043/tumblers tumblers
+door door
+door door
+door door

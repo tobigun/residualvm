@@ -1,0 +1,7 @@
+/kstx005/sky sky
+/kstx006/litter litter
+/kstx018/litter litter
+/kstx019/litter litter
+/kstx022/big can big can
+/kstx028/opener opener
+/kstx031/door door

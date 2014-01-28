@@ -1,0 +1,6 @@
+/tetx001/grates grates
+/tetx002/grating grating
+/tetx003/grating grating
+/tetx004/sewer sewer
+/tetx005/ ladder
+ 

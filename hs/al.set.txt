@@ -1,0 +1,6 @@
+/altx001/rope rope
+/altx004/eye eye
+/altx012/door door
+/altx013/trap door trap door
+/altx014/big door big door
+/altx014/big door big door

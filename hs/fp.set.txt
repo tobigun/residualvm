@@ -1,0 +1,4 @@
+/fptx002/flowerbox flowerbox
+/fptx004/flowerbox flowerbox
+/fptx001/door door
+/fptx005/florist's shop florist's shop

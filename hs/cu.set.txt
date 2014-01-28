@@ -1,0 +1,5 @@
+/cutx001/crane crane
+/cutx002/coral crusher coral crusher
+/cutx010/cabin cabin
+/cutx011/ramp ramp
+/cutx013/ramp ramp

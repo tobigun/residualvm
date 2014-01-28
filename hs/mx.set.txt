@@ -1,0 +1,6 @@
+/mxtx058/trophies trophies
+/mxtx064/silver cup silver cup
+/mxtx065/gold cups gold cups
+/mxtx066/statue statue
+/mxtx068/Maximino Maximino
+/mxtx070/door door

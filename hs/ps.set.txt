@@ -1,0 +1,8 @@
+/pstx004/sub sub
+/pstx007/octopus octopus
+/pstx011/the Pearl the Pearl
+/pstx017/Glottis Glottis
+/pstx022/Chepito Chepito
+/pstx029/lantern lantern
+/pstx033/barnacles barnacles
+trigger trigger
