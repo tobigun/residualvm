@@ -140,3 +140,5 @@ dists/msvc*/**
 \#*
 TAGS
 
+residualvm.kdev4
+hs/.kdev4/
