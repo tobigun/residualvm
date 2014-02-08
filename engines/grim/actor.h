@@ -139,7 +139,7 @@ public:
 	 * @param position The position.
 	 * @see getPos
 	 */
-	void setPos(const Math::Vector3d &position);
+	void setPos(const Math::Vector3d &position, int xnum=0);
 	/**
 	 * Returns the position of the actor on the 3D scene.
 	 *
@@ -532,6 +532,7 @@ public:
 	void clearCleanBuffer();
 
 	bool isTalkingForeground() const;
+	void setWalkBwd(bool bwd) { _walkBwd = bwd; }
 
 private:
 	void costumeMarkerCallback(int marker);
@@ -568,6 +569,7 @@ private:
 	Math::Angle _pitch, _yaw, _roll;
 	float _walkRate, _turnRate;
 
+	bool _walkBwd;
 	bool _followBoxes;  // Constrain to walkboxes
 	float _reflectionAngle; // Maximum angle to turn by at walls
 	bool _visible;
