@@ -1,5 +1,0 @@
-/nltx006/gargoyle gargoyle
-/nltx011/arm arm
-/nltx014/ladder ladder
-/nltx017/window window
-/nltx020/sign sign

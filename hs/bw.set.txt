@@ -1,4 +1,0 @@
-/bwtx001/door door
-/bwtx002/door door
-/bwtx003/bridge bridge
-/bwtx004/bridge bridge

@@ -1,4 +1,0 @@
-/lwtx019/hole hole
- 
-/lwtx021/door ladder
-/lwtx021/ladder ladder

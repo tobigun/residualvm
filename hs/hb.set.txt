@@ -1,4 +1,0 @@
-/hbtx001/door door
-/hbtx002/door door
-/hbtx003/door door
-/hbtx004/door door

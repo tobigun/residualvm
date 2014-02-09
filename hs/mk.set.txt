@@ -1,6 +1,0 @@
-/mktx037/rag rag
-/mktx001/drawers drawers
-/mktx005/toaster toaster
-/mktx008/mug rack mug rack
-/mktx020/fridge fridge
-/mktx026/door door

@@ -1,7 +1,0 @@
-panel panel
-panel panel
-drawer drawer
-lounge lounge
-/cftx018/letters letters
-door door
-door door

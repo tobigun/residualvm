@@ -1,9 +1,0 @@
-/ddtx046/dock workers dock workers
-terry terry
-/ddtx058/workers workers
-/ddtx058/dry docks workers
-/ddtx063/tools tools
-/ddtx068/striking bees striking bees
-/ddtx070/door door
-/ddtx071/bridge bridge
-/ddtx150/door door

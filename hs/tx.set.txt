@@ -1,2 +1,0 @@
-/txtx001/door door
-/txtx002/door door

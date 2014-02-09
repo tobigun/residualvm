@@ -1,7 +1,0 @@
-/lrtx015/body body
-/lrtx022/woman woman
-/lrtx024/police officer police officer
-/lrtx025/woman woman
-/lrtx026/food food
-/lrtx031/milkshake milkshake
-/lrtx036/door door

@@ -467,6 +467,10 @@ void Lua_V1::TurnLightOn() {
 }
 
 // EXTENSIONS
+void Lua_V1::InteractMode() {
+    //int mode = lua_getnumber(lua_getparam(1));
+    //g_grim->getHotspotMan()->cutSceneMode(mode);
+}
 
 void Lua_V1::RegisterHotspot() {
     Math::Vector3d pos (lua_getnumber(lua_getparam(2)),
@@ -475,6 +479,12 @@ void Lua_V1::RegisterHotspot() {
     Common::String scene = lua_getstring(lua_getparam(5));
     int n = g_grim->getHotspotMan()->addHotspot(lua_getstring(lua_getparam(1)),pos, scene);
     lua_pushnumber(n);
+}
+
+void Lua_V1::RenameHotspot() {
+	int id = lua_getnumber(lua_getparam(1));
+	Common::String name = lua_getstring(lua_getparam(2));
+    g_grim->getHotspotMan()->renameHotspot(id,name);
 }
 
 void Lua_V1::ActivateHotspot() { 

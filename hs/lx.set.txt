@@ -1,5 +1,0 @@
-/lxtx004/card card
-/lxtx006/pier pier
-/lxtx007/door door
-/lxtx008/door door
-/lxtx010/door door

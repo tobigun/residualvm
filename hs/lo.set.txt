@@ -1,9 +1,0 @@
-/lotx023/poster poster
-/lotx026/statue statue
-/lotx028/statue statue
-/lotx030/poster poster
-/lotx033/directory directory
-/lotx009/door door
-/lotx011/elevator elevator
-/lotx013/door door
-/lotx015/door door

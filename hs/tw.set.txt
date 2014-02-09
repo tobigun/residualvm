@@ -1,3 +1,0 @@
-track track
-/twtx001/door door
-/twtx002/door door

@@ -1,7 +1,0 @@
-/hqtx104/Salvador Salvador
-/hqtx116/Eva Eva
-/hqtx133/plans plans
-/hqtx137/slide projector slide projector
-/hqtx141/hatch hatch
-/hqtx146/computer computer
-/hqtx152/elevator elevator

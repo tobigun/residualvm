@@ -1,3 +1,0 @@
-/cetx001/door door
-/cetx002/door door
-/cetx003/door door

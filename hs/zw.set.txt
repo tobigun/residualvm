@@ -1,8 +1,0 @@
-/zwtx007/grating grating
-/zwtx008/grating grating
-/zwtx009/drain drain
-/zwtx010/grating grating
-/zwtx011/trail of baby tears trail of baby tears
-/zwtx001/door door
-/zwtx002/door door
-/zwtx002/exit door

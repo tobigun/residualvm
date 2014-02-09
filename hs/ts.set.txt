@@ -1,5 +1,0 @@
-/tstx001/crowd crowd
-/tstx006/crowd crowd
-/tstx007/door door
-/tstx008/stairs stairs
-/tstx010/hallway hallway

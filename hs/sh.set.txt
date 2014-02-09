@@ -1,8 +1,0 @@
-glottis glottis
-master flower trail master flower trail
-/shtx002/remote control remote control
-/shtx008/storm drain storm drain
-/shtx012/puddle puddle
-/shtx019/sewer sewer
-/shtx020/sewer sewer
-/shtx021/corridor corridor

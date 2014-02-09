@@ -1,5 +1,0 @@
-/lbtx004/Bone Wagon Bone Wagon
-/lbtx006/sign sign
-/lbtx016/key key
-/lbtx020/door door
-/lbtx021/door door

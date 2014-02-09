@@ -1,4 +1,0 @@
-door door
-/actx001/anchor anchor
-/actx007/anchor anchor
-path path

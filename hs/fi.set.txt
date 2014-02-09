@@ -1,9 +1,0 @@
-/fitx068/gun gun
-/fitx072/can of sproutella can of sproutella
-/fitx077/window_display window_display
-/fitx082/refrigerator refrigerator
-/fitx087/refrigerator refrigerator
-/fitx088/ball of tape ball of tape
-/fitx093/cases cases
-/fitx100/Bowlsley Bowlsley
-/fitx108/door door

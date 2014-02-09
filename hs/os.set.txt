@@ -1,8 +1,0 @@
-/ostx006/car car
-/ostx010/sign sign
-/ostx012/facade facade
-/ostx001/door door
-/ostx004/door door
-/ostx005/door door
-/ostx015/door door
-/ostx016/door door

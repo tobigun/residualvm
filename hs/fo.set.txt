@@ -1,6 +1,0 @@
-/fotx153/hammer hammer
-/fotx156/desk desk
-/fotx159/angelito angelito
-/fotx173/angelita angelita
-/fotx174/cage door cage door
-/fotx189/door door

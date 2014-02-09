@@ -1,5 +1,0 @@
-/sutx156/lantern lantern
-/sutx158/Chepito Chepito
-/sutx160/Lola Lola
-/sutx166/Glottis Glottis
-/sutx177/light light

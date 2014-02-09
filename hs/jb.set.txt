@@ -1,8 +1,0 @@
-/jbtx025/Bone Wagon Bone Wagon
-/jbtx033/Glottis Glottis
-/jbtx053/dominos dominos
- 
-/jbtx056/dominos dominos
-/jbtx072/plunger plunger
-/jbtx076/dynamite dynamite
-/jbtx079/door door

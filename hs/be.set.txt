@@ -1,3 +1,0 @@
-/betx002/sign sign
-/betx001/door door
-/betx005/door door

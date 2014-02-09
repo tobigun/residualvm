@@ -1,6 +1,0 @@
-/retx058/Bone Wagon Bone Wagon
-/retx063/Velasco Velasco
-/retx067/logbook logbook
- 
- 
-/retx078/door door

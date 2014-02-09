@@ -1,2 +1,0 @@
-/setx001/door door
-/setx002/hatch hatch

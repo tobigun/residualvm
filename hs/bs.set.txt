@@ -1,3 +1,0 @@
-/bstx001/door door
-/bstx003/stairs stairs
-/bstx008/stairs stairs

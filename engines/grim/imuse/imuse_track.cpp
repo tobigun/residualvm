@@ -104,7 +104,7 @@ bool Imuse::startSound(const char *soundName, int volGroupId, int hookId, int vo
 	// instead of starting a new copy of the track
 	for (i = 0; i < MAX_IMUSE_TRACKS; i++) {
 		// Filenames are case insensitive, see findTrack
-		if (!scumm_stricmp(_track[i]->soundName, soundName)) {
+		if (!scumm_stricmp(_track[i]->soundName, soundName) && !_track[i]->toBeRemoved) {
 			Debug::debug(Debug::Imuse, "Imuse::startSound(): Track '%s' already playing.", soundName);
 			return true;
 		}
@@ -166,7 +166,6 @@ bool Imuse::startSound(const char *soundName, int volGroupId, int hookId, int vo
 											track->getVol(), track->getPan(), DisposeAfterUse::YES,
 											false, (track->mixerFlags & kFlagReverseStereo) != 0);
 	track->used = true;
-
 	return true;
 }
 

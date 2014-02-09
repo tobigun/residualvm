@@ -1,3 +1,0 @@
-/evtx001/stairs stairs
-/evtx002/elevator elevator
-door door

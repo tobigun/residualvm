@@ -1,5 +1,0 @@
- 
- 
-/cbtx044/door door
-/cbtx045/door door
-/cbtx046/door door

@@ -1,4 +1,0 @@
-/gttx001/exit exit
-/gttx002/door door
-/gttx003/door door
-/gttx004/door door

@@ -1,4 +1,0 @@
- 
-/fhtx001/door door
-/fhtx003/elevator elevator
-/fhtx005/walkway walkway
