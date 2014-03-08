@@ -588,7 +588,7 @@ void Actor::walkTo(const Math::Vector3d &p, bool force_walk) {
 				closedList.push_back(node);
 				openList.remove(node);
 				Sector *sector = node->sect;
-
+				
 				if (sector == endSec) {
 					PathNode *n = closedList.back();
 					// Don't put the start position in the list, or else
