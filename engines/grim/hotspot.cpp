@@ -22,8 +22,9 @@
 
 #define FORBIDDEN_SYMBOL_ALLOW_ALL
 
-#include "engines/grim/gfx_opengl.h"
+//#include "engines/grim/gfx_opengl.h"
 
+#include "bitmap.h"
 #include "common/foreach.h"
 #include "engines/grim/hotspot.h"
 #include "engines/grim/primitives.h"
@@ -258,7 +259,8 @@ void HotspotMan::drawActive(int debug) {
                 p.createLine(Common::Point(x0,y0),Common::Point(x1,y1),col);
                 pa.push_back(p);
             }
-        }    
+        }   
+#if 0 
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
         glOrtho(0, 640,480, 0, 0, 1);
@@ -267,6 +269,7 @@ void HotspotMan::drawActive(int debug) {
         for (size_t k=0; k<pa.size(); k++) {
             pa[k].draw();
         }    
+#endif
     }
 }
 
