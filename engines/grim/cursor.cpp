@@ -50,7 +50,7 @@ void Cursor::loadAvailableCursors() {
         _bitmaps[i]->_data->_hasTransparency = true;
     }
     _hotspotx = _hotspoty = 15;
-    CursorMan.showMouse(false);
+    CursorMan.showMouse(true);
 }
 
 void Cursor::reload() {
