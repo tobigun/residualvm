@@ -14,11 +14,11 @@ import android.view.ViewConfiguration;
 import android.view.GestureDetector;
 import android.view.inputmethod.InputMethodManager;
 
-import tv.ouya.console.api.OuyaController;
+//import tv.ouya.console.api.OuyaController;
 
 public class ResidualVMEvents implements
 		android.view.View.OnKeyListener,
-		android.view.View.OnGenericMotionListener,
+		//android.view.View.OnGenericMotionListener,
 		android.view.GestureDetector.OnGestureListener,
 		android.view.GestureDetector.OnDoubleTapListener {
 
@@ -266,6 +266,7 @@ public class ResidualVMEvents implements
 	private static boolean rightJoystickHeld = false;
 	private static int rightJoystickKeyCode = -1;
 
+	/*
 	public boolean onGenericMotion(View v, final MotionEvent event) {
 		if ((event.getSource() & InputDevice.SOURCE_CLASS_JOYSTICK) != 0) {
 			float RS_Y = event.getAxisValue(OuyaController.AXIS_RS_Y);
@@ -285,4 +286,5 @@ public class ResidualVMEvents implements
 		}
 		return false;
 	}
+	*/
 }

@@ -3,7 +3,7 @@
 # These must be incremented for each market upload
 ANDROID_VERSIONCODE = 1000
 
-ANDROID_TARGET_VERSION = 15
+ANDROID_TARGET_VERSION = 10
 
 NDK_BUILD = $(ANDROID_NDK)/ndk-build
 SDK_ANDROID = $(ANDROID_SDK)/tools/android
@@ -26,8 +26,7 @@ RESOURCES = \
 	$(PATH_BUILD_RES)/drawable-xhdpi/ic_action_settings.png \
 	$(PATH_BUILD_RES)/drawable-xxhdpi/ic_action_settings.png
 
-JAVA_EXTRA_LIBS = \
-	$(PATH_BUILD)/libs/ouya-sdk.jar
+#JAVA_EXTRA_LIBS = $(PATH_BUILD)/libs/ouya-sdk.jar
 
 DIST_ANDROID_MK = $(PATH_DIST)/jni/Android.mk
 DIST_BUILD_XML = $(PATH_DIST)/custom_rules.xml
