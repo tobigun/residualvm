@@ -293,8 +293,8 @@ Common::Error GrimEngine::run() {
 	bool fullscreen = ConfMan.getBool("fullscreen");
 	createRenderer();
 	g_driver->setupScreen(640, 480, fullscreen);
-	_system->showMouse(true);
-	_system->lockMouse(true);
+	_system->showMouse(false);
+	_system->lockMouse(false);
 
 	if (getGameType() == GType_MONKEY4 && SearchMan.hasFile("AMWI.m4b")) {
 		// TODO: Play EMI Mac Aspyr logo
