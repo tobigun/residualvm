@@ -73,6 +73,10 @@ public:
      */
 	void invertAffineOrthonormal();
 
+	/**
+     * Inverts a matrix.
+     */
+	bool invert();
 	void transpose();
 
 };

@@ -47,6 +47,10 @@ MODULE_OBJS := \
 	tinygl/zmath.o \
 	tinygl/ztriangle.o \
 	tinygl/ztriangle_shadow.o
+ifdef USE_OPENGL_SHADERS
+MODULE_OBJS += \
+	projection.o
+endif
 
 # Include common rules
 include $(srcdir)/rules.mk
